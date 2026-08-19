@@ -111,13 +111,16 @@ def stash_submit(
         ("is_ai_generated", "true"),
         ("noai", "true"),
     ] + [(f"tags[{i}]", t) for i, t in enumerate(tags)]
+    from tools.vision import detect_media_type
+
+    media_type = detect_media_type(Path(image_path).read_bytes()[:16])
     with open(image_path, "rb") as f:
         r = _post(
             f"{API}/stash/submit",
             headers=headers,
             session=session,
             data=data,
-            files={"file": (Path(image_path).name, f, "image/png")},
+            files={"file": (Path(image_path).name, f, media_type)},
         )
     body = r.json()
     if r.status_code != 200 or "itemid" not in body:

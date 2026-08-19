@@ -75,7 +75,7 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setattr(steps, "LEDGER", tmp_path / "state" / "published.jsonl")
     (tmp_path / "state").mkdir()
     img = tmp_path / "img.png"
-    img.write_bytes(b"png")
+    img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
     return tmp_path, str(img)
 
 

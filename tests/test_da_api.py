@@ -63,7 +63,7 @@ def test_429_exhaustion_raises(monkeypatch):
 
 def test_submit_shape(tmp_path):
     img = tmp_path / "x.png"
-    img.write_bytes(b"png")
+    img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
     s = FakeSession([FakeResponse(200, {"status": "success", "itemid": 42})])
     itemid = da.stash_submit("AT", img, "Title", "c1\n\nc2",
                              ["gothic", "aiart"], session=s)
