@@ -1,8 +1,10 @@
 """Frozen model roster (FR-826 R-4, AC-09).
 
-Two ACTIVE models; grok stays DISABLED until its exact Replicate slug
-is committed via a recorded FR update. Zero active models is a hard
-failure BEFORE any corpus draw or DA side effect — never a green skip.
+Two ACTIVE models. Grok is RETIRED: verified 2026-08-19 that no grok
+image model exists on Replicate (xai/x-ai/grok all 404, search empty);
+grok imagegen is xAI-API-only, which this pipeline does not speak.
+Zero active models is a hard failure BEFORE any corpus draw or DA
+side effect — never a green skip.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ ACTIVE_MODELS: dict[str, dict] = {
 
 # name -> reason it is disabled (structured, logged, never silently used)
 DISABLED_MODELS: dict[str, str] = {
-    "grok": "no Replicate slug committed; enable via recorded FR update (R-4)",
+    "grok": "retired — no grok image model on Replicate (verified 2026-08-19); xAI-API-only",
 }
 
 
