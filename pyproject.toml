@@ -1,0 +1,22 @@
+[project]
+name = "deviant-daily"
+version = "0.1.0"
+description = "Daily generative art publisher — YAMLGraph pipeline on GitHub Actions (yamlgraph FR-826)"
+requires-python = ">=3.11"
+dependencies = [
+    "yamlgraph",
+    "replicate",
+    "httpx",
+    "requests",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 88

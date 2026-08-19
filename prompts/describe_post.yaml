@@ -1,0 +1,46 @@
+name: describe_post
+description: Vision instruction for FR-826 DeviantArt daily post descriptions.
+template: |
+  The image is attached. The original generation prompt is:
+  {original_prompt}
+
+  Treat the prompt as intent and the image as outcome. Ground every title,
+  paragraph, quote, tag, confidence judgement, and mature-content judgement in
+  what is visibly present in the attached image. Do not invent around unclear
+  regions; uncertainty belongs in confidence, not in ornament.
+
+  Return the structured fields by name: title, paragraphs, quote, tags,
+  confidence, mature, mature_level, and mature_classification.
+
+  title: Write a poetic, evocative English title. Never echo the prompt, never
+  paraphrase it as a caption, and never use a generic inventory label.
+
+  paragraphs: Write 3-4 atmospheric myth-building paragraphs that evoke the
+  artwork's world, weather, mood, and implied story while remaining anchored in
+  visible evidence. The final paragraph must end with the exact epigram:
+  "Be Art. Be Unique."
+
+  quote: Provide one short in-character quote from the artwork's world or
+  subject. Keep it concise and grounded in the visible scene.
+
+  tags: Provide 8-10 lowercase DeviantArt discovery tags. Use only letters,
+  digits, and underscores; do not use spaces, hyphens, hash marks, punctuation,
+  or mixed case.
+
+  confidence: Choose exactly one of high, medium, or low. Use high only when
+  the image is clearly legible and every returned field is grounded in visible
+  evidence. Use medium or low for ambiguity, illegibility, weak grounding, or
+  any case where the description would need to guess.
+
+  mature: Return a boolean judged from the image under DeviantArt policy.
+
+  mature_level: Return strict or moderate only when mature is true. Return null
+  when mature is false.
+
+  mature_classification: When mature is true, return one or more values from
+  exactly this set: nudity, sexual, gore, language, ideology. When mature is
+  false, return an empty list.
+
+  Content DeviantArt forbids outright must be surfaced as confidence=low so the
+  deterministic gate skips publication. Never describe around prohibited
+  content to make it publishable.

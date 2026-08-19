@@ -1,0 +1,111 @@
+version: "1.0"
+name: deviant-daily
+description: FR-826 daily DeviantArt auto-publish orchestration pipeline
+
+state:
+  date: str
+  drawn: any
+  generated: any
+  described: any
+  gate: any
+  published: any
+
+tools:
+  draw_step:
+    type: python
+    module: tools.steps
+    function: draw_step
+    description: Draw or resume the daily corpus prompt and report terminal reruns.
+  generate_step:
+    type: python
+    module: tools.steps
+    function: generate_step
+    description: Generate the artwork image for the selected prompt.
+  describe_step:
+    type: python
+    module: tools.steps
+    function: describe_step
+    description: Describe the generated image with the publish prompt contract.
+  gate_step:
+    type: python
+    module: tools.steps
+    function: gate_step
+    description: Validate the description and decide whether the day may publish.
+  publish_step:
+    type: python
+    module: tools.steps
+    function: publish_step
+    description: Publish the accepted post to DeviantArt and record the result.
+
+nodes:
+  draw:
+    type: tool_call
+    tool: draw_step
+    args:
+      date: "{state.date}"
+    state_key: drawn
+    on_error: fail
+
+  generate:
+    type: tool_call
+    tool: generate_step
+    args:
+      prompt: "{state.drawn.result.prompt}"
+      date: "{state.drawn.result.date}"
+    state_key: generated
+    on_error: fail
+
+  describe:
+    type: tool_call
+    tool: describe_step
+    args:
+      image_path: "{state.generated.result.image_path}"
+      prompt: "{state.drawn.result.prompt}"
+    state_key: described
+    on_error: fail
+
+  gate:
+    type: tool_call
+    tool: gate_step
+    args:
+      description: "{state.described.result}"
+      date: "{state.drawn.result.date}"
+      prompt: "{state.drawn.result.prompt}"
+      source_file: "{state.drawn.result.source_file}"
+    state_key: gate
+    on_error: fail
+
+  publish:
+    type: tool_call
+    tool: publish_step
+    args:
+      post: "{state.gate.result.post}"
+      image_path: "{state.generated.result.image_path}"
+      date: "{state.drawn.result.date}"
+      prompt: "{state.drawn.result.prompt}"
+      source_file: "{state.drawn.result.source_file}"
+      model_name: "{state.generated.result.model_name}"
+    state_key: published
+    on_error: fail
+
+edges:
+  - from: START
+    to: draw
+  - from: draw
+    to: END
+    condition: "drawn.result.done == true"
+  - from: draw
+    to: generate
+    condition: "drawn.result.done != true"
+  - from: generate
+    to: describe
+  - from: describe
+    to: gate
+  - from: gate
+    to: publish
+    condition: "gate.result.publish == true"
+  - from: gate
+    to: END
+    condition: "gate.result.publish != true"
+  - from: publish
+    to: END
