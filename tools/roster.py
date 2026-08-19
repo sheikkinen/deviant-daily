@@ -1,8 +1,9 @@
 """Frozen model roster (FR-826 R-4, AC-09).
 
-Two ACTIVE models. Grok is RETIRED: verified 2026-08-19 that no grok
-image model exists on Replicate (xai/x-ai/grok all 404, search empty);
-grok imagegen is xAI-API-only, which this pipeline does not speak.
+Three ACTIVE models. Grok enabled 2026-08-19: operator supplied the
+slug https://replicate.com/xai/grok-imagine-image-2 (the earlier
+"no Replicate grok" retirement was a search-API false negative —
+GET /models/xai/grok-imagine-image-2 returns the schema).
 Zero active models is a hard failure BEFORE any corpus draw or DA
 side effect — never a green skip.
 """
@@ -28,12 +29,14 @@ ACTIVE_MODELS: dict[str, dict] = {
         "slug": "black-forest-labs/flux-1.1-pro-ultra",
         "params": {"aspect_ratio": "16:9"},
     },
+    "grok": {
+        "slug": "xai/grok-imagine-image-2",
+        "params": {"aspect_ratio": "16:9", "resolution": "2k", "quality": "medium"},
+    },
 }
 
 # name -> reason it is disabled (structured, logged, never silently used)
-DISABLED_MODELS: dict[str, str] = {
-    "grok": "retired — no grok image model on Replicate (verified 2026-08-19); xAI-API-only",
-}
+DISABLED_MODELS: dict[str, str] = {}
 
 
 class RosterError(RuntimeError):

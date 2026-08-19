@@ -46,7 +46,7 @@ exits idempotently. A post-publish commit failure fails the run as
 |---|---|---|
 | z-image | `prunaai/z-image-turbo` | active |
 | flux-ultra | `black-forest-labs/flux-1.1-pro-ultra` | active |
-| grok | — | disabled until slug committed via recorded FR update |
+| grok | xai/grok-imagine-image-2 | 16:9, 2k, quality medium |
 
 ## Secrets
 

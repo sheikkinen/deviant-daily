@@ -27,7 +27,9 @@ _spec.loader.exec_module(_spec and extract_corpus)
 def test_roster_frozen_models():
     assert ACTIVE_MODELS["z-image"]["slug"] == "prunaai/z-image-turbo"
     assert ACTIVE_MODELS["flux-ultra"]["slug"] == "black-forest-labs/flux-1.1-pro-ultra"
-    assert "grok" in DISABLED_MODELS  # disabled until slug committed (R-4)
+    assert "grok" in ACTIVE_MODELS  # enabled 2026-08-19, slug xai/grok-imagine-image-2 (R-4)
+    assert ACTIVE_MODELS["grok"]["slug"] == "xai/grok-imagine-image-2"
+    assert DISABLED_MODELS == {}
 
 
 def test_roster_zero_active_hard_fails():
