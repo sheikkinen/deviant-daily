@@ -116,7 +116,10 @@ def test_render_artist_comments_style_contract():
         tags=["gothic"], confidence="high", mature=False,
     )
     comments = render_artist_comments(post)
-    # paragraphs separated by blank lines, quote, then gallery footer (§3)
-    assert comments.startswith("One.\n\nTwo.\n\n\u201cVow.\u201d\n\n")
+    # DA renders \n\n as an EMPTY <p> that collapses to zero height
+    # (live witness 2026-08-19) — the separator line must carry a
+    # non-breaking space so the blank line is visible.
+    assert comments.startswith("One.\n\u00a0\nTwo.\n\u00a0\n\u201cVow.\u201d\n\u00a0\n")
+    assert "\n\n" not in comments
     assert comments.endswith(DESCRIPTION_FOOTER)
     assert "deviantart.com/sheikkinen/gallery" in comments
