@@ -2,9 +2,10 @@ name: daily-publish
 
 on:
   workflow_dispatch:
-  # Daily cron — enabled after AC-07/AC-14 dispatch witnesses (FR-826 C-4)
-  # schedule:
-  #   - cron: "0 7 * * *"
+  # AC-14 witnessed 2026-08-19 (run 32267564652); AC-16 idempotent exit
+  # (run 32268278258). First cron run doubles as AC-07 rotation witness.
+  schedule:
+    - cron: "0 7 * * *"
 
 permissions:
   contents: write
