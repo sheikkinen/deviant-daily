@@ -1,12 +1,22 @@
 """Tests: media type detected from content, not filename (FR-826 fix:
-flux-ultra returns JPEG regardless of output extension)."""
+flux-ultra returned JPEG regardless of output extension)."""
+
+import io
 
 import pytest
+from PIL import Image
 
 from tools.vision import detect_media_type
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+
+
+def _real_jpeg(width: int = 640, height: int = 360) -> bytes:
+    """A decodable JPEG — the describe path runs a real decoder."""
+    buf = io.BytesIO()
+    Image.new("RGB", (width, height), (10, 20, 30)).save(buf, format="JPEG")
+    return buf.getvalue()
 
 
 def test_png_magic():
@@ -25,7 +35,7 @@ def test_unknown_raises():
 def test_describe_uses_content_type(tmp_path):
     """A .png-named file with JPEG content must be declared image/jpeg."""
     img = tmp_path / "lying-name.png"
-    img.write_bytes(JPEG)
+    img.write_bytes(_real_jpeg())
 
     captured = {}
 

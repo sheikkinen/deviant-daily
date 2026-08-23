@@ -51,6 +51,15 @@ def test_shrinking_preserves_aspect_ratio_and_caps_the_long_edge():
     assert shrunk.width / shrunk.height == pytest.approx(2000 / 1500, rel=0.02)
 
 
+def test_oversized_dimensions_shrink_even_when_bytes_fit():
+    """The edge cap is independent of the byte cap — a flat 4000px image
+    compresses tiny, and passing it full-size wastes upload for nothing."""
+    original = _png(4000, 2250)
+    assert len(base64.b64encode(original)) <= MAX_B64_BYTES
+    data, _ = prepare_for_vision(original)
+    assert max(Image.open(io.BytesIO(data)).size) <= MAX_EDGE
+
+
 def test_the_original_file_is_never_modified(tmp_path):
     """DA publishes the full-size artwork; only the vision copy shrinks."""
     path = tmp_path / "art.png"

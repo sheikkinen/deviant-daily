@@ -56,18 +56,19 @@ def _fits(data: bytes) -> bool:
 
 
 def prepare_for_vision(data: bytes) -> tuple[bytes, str]:
-    """Return (bytes, media_type) guaranteed to fit the provider ceiling.
+    """Return (bytes, media_type) within both the byte and edge ceilings.
 
-    Magic bytes stay authoritative (FR-826): the decoder only runs when
-    the payload actually exceeds the ceiling.
+    Magic bytes stay authoritative for the declared media type (FR-826);
+    the decoder decides only whether the payload must shrink.
     """
-    media_type = detect_media_type(data)
-    if _fits(data):
-        return data, media_type
-
     from PIL import Image
 
-    img = Image.open(io.BytesIO(data)).convert("RGB")
+    media_type = detect_media_type(data)
+    img = Image.open(io.BytesIO(data))
+    if max(img.size) <= MAX_EDGE and _fits(data):
+        return data, media_type
+
+    img = img.convert("RGB")
     img.thumbnail((MAX_EDGE, MAX_EDGE), Image.LANCZOS)
     for quality in JPEG_QUALITIES:
         buf = io.BytesIO()
