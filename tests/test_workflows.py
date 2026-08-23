@@ -70,6 +70,12 @@ def test_publish_now_input_shape():
     assert inputs["model"]["options"] == ["random", *sorted(ACTIVE_MODELS)]
 
 
+def test_callers_declare_the_write_ceiling():
+    """A called workflow cannot escalate beyond its caller (startup_failure)."""
+    for name in ("daily.yml", "publish-now.yml"):
+        assert load(name)["permissions"]["contents"] == "write"
+
+
 def test_secrets_are_not_inlined_in_the_callers():
     for name in ("daily.yml", "publish-now.yml"):
         assert "secrets." not in (WF / name).read_text()

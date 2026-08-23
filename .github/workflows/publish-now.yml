@@ -35,6 +35,11 @@ concurrency:
   group: daily-publish
   cancel-in-progress: false
 
+# The caller sets the ceiling: a called workflow cannot escalate beyond it,
+# and the pipeline commits ledger transitions mid-run.
+permissions:
+  contents: write
+
 jobs:
   run:
     uses: ./.github/workflows/_pipeline.yml

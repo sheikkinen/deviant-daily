@@ -12,6 +12,11 @@ concurrency:
   group: daily-publish
   cancel-in-progress: false
 
+# The caller sets the ceiling: a called workflow cannot escalate beyond it,
+# and the pipeline commits ledger transitions mid-run.
+permissions:
+  contents: write
+
 jobs:
   # No `with:` on purpose (FR-862 AC-04): the scheduled path passes no
   # model, force, dry-run, or date override — it stays what it was.
