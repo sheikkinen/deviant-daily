@@ -26,10 +26,19 @@ _spec.loader.exec_module(_spec and extract_corpus)
 
 def test_roster_frozen_models():
     assert ACTIVE_MODELS["z-image"]["slug"] == "prunaai/z-image-turbo"
-    assert ACTIVE_MODELS["flux-ultra"]["slug"] == "black-forest-labs/flux-1.1-pro-ultra"
     assert "grok" in ACTIVE_MODELS  # enabled 2026-08-19, slug xai/grok-imagine-image-2 (R-4)
     assert ACTIVE_MODELS["grok"]["slug"] == "xai/grok-imagine-image-2"
+    # flux-ultra retired 2026-08-23 (flux-1.1-pro-ultra superseded)
+    assert "flux-ultra" not in ACTIVE_MODELS
+    assert ACTIVE_MODELS["flux-2-flex"]["slug"] == "black-forest-labs/flux-2-flex"
+    assert ACTIVE_MODELS["nano-banana-2"]["slug"] == "google/nano-banana-2"
     assert DISABLED_MODELS == {}
+
+
+def test_roster_output_format_is_da_safe():
+    """webp/jpg defaults are provider choices; DA submit needs png."""
+    for name in ("flux-2-flex", "nano-banana-2"):
+        assert ACTIVE_MODELS[name]["params"]["output_format"] == "png"
 
 
 def test_roster_zero_active_hard_fails():
@@ -41,7 +50,7 @@ def test_roster_drop_logs_structured(caplog):
     import logging
     with caplog.at_level(logging.WARNING):
         usable = validate_roster(unavailable=["z-image"])
-    assert "flux-ultra" in usable
+    assert "flux-2-flex" in usable
     assert any("model=z-image" in r.message for r in caplog.records)
 
 
