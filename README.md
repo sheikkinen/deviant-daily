@@ -7,7 +7,10 @@ Autonomous daily art publisher. Every morning a GitHub Actions run:
 2. **generates** an image on Replicate (frozen model roster)
 3. **describes** it in the sheikkinen mythic voice
    ([STYLE-CONTRACT.md](STYLE-CONTRACT.md), vision LLM)
-4. **gates** the result through a deterministic typed schema
+4. **gates** the result through a deterministic typed schema — only
+   `confidence: low` blocks; `medium` publishes escalated to mature
+   (the model hedges on mature content, and a hedge is not a reason to
+   throw the day away)
 5. **publishes** to [DeviantArt](https://www.deviantart.com/sheikkinen)
    via the OAuth2 API (`is_ai_generated=true`, `noai=true`)
 6. **commits** the post record back to this repo

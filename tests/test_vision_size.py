@@ -28,12 +28,11 @@ def _png(width: int, height: int, noisy: bool = False) -> bytes:
     return buf.getvalue()
 
 
-def test_small_image_passes_through_untouched():
-    original = _png(800, 450)
-    data, media_type = prepare_for_vision(original)
-    assert data == original
-    assert media_type == "image/png"
-
+def test_small_image_is_still_re_encoded():
+    """No passthrough branch: every payload goes through the downscaler."""
+    data, media_type = prepare_for_vision(_png(800, 450))
+    assert media_type == "image/jpeg"
+    assert data[:3] == b"\xff\xd8\xff"
 
 def test_oversized_payload_is_shrunk_below_the_ceiling():
     original = _png(2000, 1500, noisy=True)

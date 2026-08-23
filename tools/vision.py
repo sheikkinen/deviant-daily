@@ -56,19 +56,19 @@ def _fits(data: bytes) -> bool:
 
 
 def prepare_for_vision(data: bytes) -> tuple[bytes, str]:
-    """Return (bytes, media_type) within both the byte and edge ceilings.
+    """Downscale every image to the edge cap and re-encode as JPEG.
 
-    Magic bytes stay authoritative for the declared media type (FR-826);
-    the decoder decides only whether the payload must shrink.
+    Unconditional by design: Anthropic bills by pixel, so a full-size
+    passthrough is money burned. There is no 'small enough to skip'
+    branch — the only variable is JPEG quality, stepped down until the
+    payload fits the byte ceiling. Magic bytes still gate the input
+    (FR-826): an undecodable payload raises here rather than reaching
+    the provider.
     """
     from PIL import Image
 
-    media_type = detect_media_type(data)
-    img = Image.open(io.BytesIO(data))
-    if max(img.size) <= MAX_EDGE and _fits(data):
-        return data, media_type
-
-    img = img.convert("RGB")
+    detect_media_type(data)
+    img = Image.open(io.BytesIO(data)).convert("RGB")
     img.thumbnail((MAX_EDGE, MAX_EDGE), Image.LANCZOS)
     for quality in JPEG_QUALITIES:
         buf = io.BytesIO()
@@ -76,7 +76,7 @@ def prepare_for_vision(data: bytes) -> tuple[bytes, str]:
         shrunk = buf.getvalue()
         if _fits(shrunk):
             logger.info(
-                "vision: downscaled %d -> %d bytes (%dx%d, q%d)",
+                "vision: %d -> %d bytes (%dx%d, q%d)",
                 len(data), len(shrunk), *img.size, quality,
             )
             return shrunk, "image/jpeg"
