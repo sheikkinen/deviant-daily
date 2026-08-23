@@ -13,6 +13,7 @@ Ordering contracts enforced here:
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import subprocess
@@ -163,8 +164,16 @@ def publish_step(
     slot = parse_slot(slot)
     # Above the secrets check on purpose: a dry run needs no DA secrets.
     if parse_flag(dry_run):
+        out = REPO_DIR / "outputs" / "dry-run-post.json"
+        out.parent.mkdir(exist_ok=True)
+        out.write_text(json.dumps(
+            {"date": date, "slot": slot, "model": model_name,
+             "source_file": source_file, "prompt": prompt, "post": post},
+            ensure_ascii=False, indent=2,
+        ))
         logger.info("publish: DRY RUN %s#%d — no DA calls, no commits", date, slot)
-        return {"dry_run": True, "post": post, "image_path": image_path}
+        return {"dry_run": True, "post": post, "image_path": image_path,
+                "artifact": str(out)}
 
     session = session or requests
     env = {

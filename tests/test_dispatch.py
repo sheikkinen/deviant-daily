@@ -127,6 +127,21 @@ def test_publish_step_dry_run_touches_nothing_and_needs_no_secrets(monkeypatch, 
     assert "url" not in out
 
 
+def test_publish_step_dry_run_writes_the_artifact_payload(ledger):
+    """AC-07: the post dict must reach the artifact, not just the log."""
+    ledger([])
+    out = steps.publish_step(
+        post={"title": "T", "tags": ["x"]}, image_path="/tmp/x.png",
+        date="2026-08-23", prompt="p", source_file="001",
+        model_name="z-image", slot=1, dry_run="true",
+        runner=Boom(), session=Boom(),
+    )
+    payload = json.loads((steps.REPO_DIR / "outputs" / "dry-run-post.json").read_text())
+    assert payload["post"]["title"] == "T"
+    assert payload["slot"] == 1 and payload["model"] == "z-image"
+    assert out["artifact"].endswith("dry-run-post.json")
+
+
 def test_gate_step_dry_run_does_not_commit_a_skip(ledger):
     ledger([])
     low = {"title": "T", "paragraphs": ["p"], "quote": None, "tags": ["x"],
