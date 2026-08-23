@@ -2,14 +2,13 @@
 
 `state/published.jsonl` is the only guard around DA side effects.
 Statuses: drawn -> submitted -> published | skipped. Run identity is
-`(date, slot)`; slot 0 is the scheduled run and higher slots are
-operator-forced extras. Old slot-less rows normalize to slot 0 here, at
-the read boundary. Every transition that guards an external call is
-committed-and-pushed BEFORE the next side effect. A rerun that finds an
-incomplete record for the selected slot resumes from its status — it
-never draws a new prompt. An unrecoverable post-publish commit failure
-raises RecoveryRequired with the non-secret DA identifiers in the
-message.
+`(date, slot)`; each run of the day takes the next slot. Old slot-less
+rows normalize to slot 0 here, at the read boundary. Every transition
+that guards an external call is committed-and-pushed BEFORE the next
+side effect. A rerun that finds an incomplete record for the selected
+slot resumes from its status — it never draws a new prompt. An
+unrecoverable post-publish commit failure raises RecoveryRequired with
+the non-secret DA identifiers in the message.
 """
 
 from __future__ import annotations

@@ -1,19 +1,20 @@
 """Graph node step functions (FR-826 R-1: yamlgraph orchestrates, these
 are the side-effect tools it calls).
 
+If the pipeline runs, it publishes. There is no dry-run and no force:
+running it IS the intent. The one diversion is an in-flight slot, which
+is resumed rather than duplicated — its committed row may already guard
+a DA call in flight.
+
 Ordering contracts enforced here:
-- every dispatch input normalized at entry (FR-862 R-1)
+- dispatch inputs normalized at entry
 - ledger transition committed BEFORE the next side effect (R-3)
 - rotated refresh token persisted BEFORE any DA submit/publish (AC-08)
 - post-publish commit failure -> RecoveryRequired, visibly red (R-3)
-- dry_run short-circuits above every commit and every DA call and needs
-  no DA secrets (FR-862 R-2) — it is no-publication, not no-cost:
-  generation and description still run
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import subprocess
@@ -23,7 +24,7 @@ from tools import da_api
 from tools.corpus import draw_prompt
 from tools.gate import PostDescription, evaluate_gate
 from tools.generate import generate_image
-from tools.inputs import parse_date, parse_flag, parse_model, parse_slot
+from tools.inputs import parse_date, parse_model, parse_slot
 from tools.ledger import (
     TERMINAL,
     LedgerCommitError,
@@ -57,21 +58,13 @@ def _resumed(existing: dict, date: str, slot: int) -> dict:
     }
 
 
-def draw_step(
-    date: str = "",
-    force: str | bool = "",
-    dry_run: str | bool = "",
-    runner=subprocess.run,
-) -> dict:
-    """Roster check first (R-4: fail before any draw), then select the
-    (date, slot) run and draw. Force allocates only above a TERMINAL
-    slot: an in-flight slot is resumed, never stranded, because its
-    committed row may already guard a DA call in flight (FR-862 AC-07).
+def draw_step(date: str = "", runner=subprocess.run) -> dict:
+    """Roster check first (R-4: fail before any draw), then take the next
+    slot and draw. A terminal slot is not a stop sign — it just means the
+    next run gets the next slot.
     """
     validate_roster()
     date = parse_date(date)
-    force = parse_flag(force)
-    dry_run = parse_flag(dry_run)
 
     entries = read_ledger(LEDGER)
     slot = latest_slot(entries, date)
@@ -80,27 +73,22 @@ def draw_step(
     if existing and existing["status"] not in TERMINAL:
         logger.info("draw: resuming %s#%d from status=%s", date, slot, existing["status"])
         return _resumed(existing, date, slot)
-    if existing and not force:
-        logger.info("draw: %s#%d already %s — idempotent exit", date, slot, existing["status"])
-        return {**_resumed(existing, date, slot), "done": True}
 
     slot = slot + 1 if existing else 0
     drawn = draw_prompt(CORPUS, entries, date, slot)
-    if slot:
-        logger.info("draw: forced extra post %s#%d", date, slot)
-    if not dry_run:
-        record_transition(
-            REPO_DIR,
-            LEDGER,
-            {
-                "date": date,
-                "slot": slot,
-                "status": "drawn",
-                "prompt": drawn["prompt"],
-                "source_file": drawn["source_file"],
-            },
-            runner=runner,
-        )
+    logger.info("draw: %s#%d from %s", date, slot, drawn["source_file"])
+    record_transition(
+        REPO_DIR,
+        LEDGER,
+        {
+            "date": date,
+            "slot": slot,
+            "status": "drawn",
+            "prompt": drawn["prompt"],
+            "source_file": drawn["source_file"],
+        },
+        runner=runner,
+    )
     return {**drawn, "date": date, "slot": slot, "done": False}
 
 
@@ -120,27 +108,25 @@ def gate_step(
     prompt: str,
     source_file: str,
     slot: str | int = 0,
-    dry_run: str | bool = "",
     runner=subprocess.run,
 ) -> dict:
     """Deterministic gate; a skip is committed BEFORE the green exit (R-5)."""
     slot = parse_slot(slot)
     result = evaluate_gate(description)
     if not result.publish:
-        if not parse_flag(dry_run):
-            record_transition(
-                REPO_DIR,
-                LEDGER,
-                {
-                    "date": date,
-                    "slot": slot,
-                    "status": "skipped",
-                    "reason": result.reason,
-                    "prompt": prompt,
-                    "source_file": source_file,
-                },
-                runner=runner,
-            )
+        record_transition(
+            REPO_DIR,
+            LEDGER,
+            {
+                "date": date,
+                "slot": slot,
+                "status": "skipped",
+                "reason": result.reason,
+                "prompt": prompt,
+                "source_file": source_file,
+            },
+            runner=runner,
+        )
         logger.info("gate: SKIP (%s)", result.reason)
         return {"publish": False, "reason": result.reason}
     return {"publish": True, "post": result.post.model_dump()}
@@ -154,7 +140,6 @@ def publish_step(
     source_file: str,
     model_name: str,
     slot: str | int = 0,
-    dry_run: str | bool = "",
     runner=subprocess.run,
     session=None,
 ) -> dict:
@@ -162,19 +147,6 @@ def publish_step(
     import requests
 
     slot = parse_slot(slot)
-    # Above the secrets check on purpose: a dry run needs no DA secrets.
-    if parse_flag(dry_run):
-        out = REPO_DIR / "outputs" / "dry-run-post.json"
-        out.parent.mkdir(exist_ok=True)
-        out.write_text(json.dumps(
-            {"date": date, "slot": slot, "model": model_name,
-             "source_file": source_file, "prompt": prompt, "post": post},
-            ensure_ascii=False, indent=2,
-        ))
-        logger.info("publish: DRY RUN %s#%d — no DA calls, no commits", date, slot)
-        return {"dry_run": True, "post": post, "image_path": image_path,
-                "artifact": str(out)}
-
     session = session or requests
     env = {
         k: os.environ.get(k, "")

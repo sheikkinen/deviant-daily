@@ -1,18 +1,12 @@
 name: _pipeline
 
-# Reusable body for both callers (FR-862). Neither caller duplicates the
-# secrets list or the install line; drift between them is a test failure
+# Reusable body for both callers. Neither caller duplicates the secrets
+# list or the install line; drift between them is a test failure
 # (tests/test_workflows.py).
 on:
   workflow_call:
     inputs:
-      dry_run:
-        type: string
-        default: ""
       model:
-        type: string
-        default: ""
-      force:
         type: string
         default: ""
       date:
@@ -40,14 +34,10 @@ jobs:
           yamlgraph graph run graph.yaml \
             --var date="${DATE:-$(date -u +%F)}" \
             --var model="$MODEL" \
-            --var force="$FORCE" \
-            --var dry_run="$DRY_RUN" \
             --full
         env:
           DATE: ${{ inputs.date }}
           MODEL: ${{ inputs.model }}
-          FORCE: ${{ inputs.force }}
-          DRY_RUN: ${{ inputs.dry_run }}
           REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DA_CLIENT_ID: ${{ secrets.DA_CLIENT_ID }}
@@ -55,13 +45,3 @@ jobs:
           DA_REFRESH_TOKEN: ${{ secrets.DA_REFRESH_TOKEN }}
           GH_PAT: ${{ secrets.GH_PAT }}
           PROVIDER: anthropic
-      # Dry runs publish nothing, so the artifact is the only output.
-      - name: Upload dry-run artifact
-        if: ${{ inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: dry-run-${{ github.run_id }}
-          path: |
-            /tmp/deviant-daily-*.png
-            outputs/dry-run-post.json
-          if-no-files-found: warn

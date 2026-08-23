@@ -1,14 +1,11 @@
 name: publish-now
 
-# Manual counterpart to daily-publish (FR-862). Defaults are deliberately
-# safe: dry_run=true means an accidental dispatch publishes nothing.
+# Manual counterpart to daily-publish. Running it publishes — that is the
+# whole point of the button. `model` and `date` are capabilities, not
+# guards.
 on:
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "No DA calls, no commits (still spends Replicate + LLM tokens)"
-        type: boolean
-        default: true
       model:
         description: "Pin one roster model, or random"
         type: choice
@@ -19,10 +16,6 @@ on:
           - grok
           - nano-banana-2
           - z-image
-      force:
-        description: "Publish an extra post on a date that already has one"
-        type: boolean
-        default: false
       date:
         description: "ISO date override (empty = today UTC)"
         type: string
@@ -45,7 +38,5 @@ jobs:
     uses: ./.github/workflows/_pipeline.yml
     secrets: inherit
     with:
-      dry_run: ${{ inputs.dry_run && 'true' || 'false' }}
       model: ${{ inputs.model }}
-      force: ${{ inputs.force && 'true' || 'false' }}
       date: ${{ inputs.date }}

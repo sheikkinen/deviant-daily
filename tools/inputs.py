@@ -1,8 +1,6 @@
-"""Dispatch input normalization (FR-862 R-1).
+"""Dispatch input normalization.
 
-Workflow and CLI variables arrive as strings. `"false"` is truthy in
-Python, so an unparsed boolean silently inverts `force`/`dry_run` — a
-live publish when a dry run was requested. Everything is parsed here,
+Workflow and CLI variables arrive as strings; they are parsed here,
 before any ledger write, Replicate call, LLM call, or DA call.
 """
 
@@ -16,16 +14,6 @@ from tools.roster import ACTIVE_MODELS, RosterError
 
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 RANDOM = ("", "random")
-
-
-def parse_flag(raw: str | bool, default: bool = False) -> bool:
-    if isinstance(raw, bool):
-        return raw
-    if raw == "":
-        return default
-    if raw.lower() in ("true", "false"):
-        return raw.lower() == "true"
-    raise ValueError(f"expected true|false, got {raw!r}")
 
 
 def parse_date(raw: str) -> str:

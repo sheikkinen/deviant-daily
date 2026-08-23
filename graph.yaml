@@ -5,8 +5,6 @@ description: FR-826 daily DeviantArt auto-publish orchestration pipeline
 state:
   date: str
   model: str
-  dry_run: str
-  force: str
   drawn: any
   generated: any
   described: any
@@ -46,8 +44,6 @@ nodes:
     tool: draw_step
     args:
       date: "{state.date}"
-      force: "{state.force}"
-      dry_run: "{state.dry_run}"
     state_key: drawn
     on_error: fail
 
@@ -79,7 +75,6 @@ nodes:
       prompt: "{state.drawn.result.prompt}"
       source_file: "{state.drawn.result.source_file}"
       slot: "{state.drawn.result.slot}"
-      dry_run: "{state.dry_run}"
     state_key: gate
     on_error: fail
 
@@ -94,7 +89,6 @@ nodes:
       source_file: "{state.drawn.result.source_file}"
       model_name: "{state.generated.result.model_name}"
       slot: "{state.drawn.result.slot}"
-      dry_run: "{state.dry_run}"
     state_key: published
     on_error: fail
 

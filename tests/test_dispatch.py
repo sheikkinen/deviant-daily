@@ -1,25 +1,31 @@
-"""Tests: dispatch semantics (FR-862 AC-06, AC-07, AC-10, AC-13).
+"""Tests: run semantics after the 2026-08-23 de-hedging.
 
-Force allocates only above a TERMINAL slot; dry_run performs no ledger
-commit, no git commit, no DA call, and needs no DA secrets.
+No dry_run, no force. If the pipeline runs, it publishes. The only
+thing that diverts a run is an in-flight slot, which is resumed rather
+than duplicated — that is FR-826 R-3 protecting a DA call that may
+already be in flight, not a guard against the operator.
 """
 
+import inspect
 import json
 
 import pytest
 
 from tools import steps
 
-DRAWN_KEYS = ("prompt", "source_file", "slot", "done")
-
 
 class Boom:
-    """Any use is a failure — the strongest form of 'no side effects'."""
+    """Any use is a failure."""
 
     def __call__(self, *a, **k):
         raise AssertionError(f"side effect attempted: {a!r}")
 
     post = get = run = __call__
+
+
+def _ok_runner(cmd, **kwargs):
+    from types import SimpleNamespace
+    return SimpleNamespace(returncode=0, stderr="", stdout="")
 
 
 @pytest.fixture
@@ -29,7 +35,8 @@ def ledger(monkeypatch, tmp_path):
     monkeypatch.setattr(steps, "CORPUS", tmp_path / "corpus.jsonl")
     (tmp_path / "state").mkdir()
     (tmp_path / "corpus.jsonl").write_text(
-        "".join(json.dumps({"prompt": f"p{i}", "source_file": f"00{i}"}) + "\n" for i in range(1, 6))
+        "".join(json.dumps({"prompt": f"p{i}", "source_file": f"00{i}"}) + "\n"
+                for i in range(1, 6))
     )
 
     def write(rows):
@@ -39,114 +46,67 @@ def ledger(monkeypatch, tmp_path):
     return write
 
 
-def _ok_runner(cmd, **kwargs):
-    from types import SimpleNamespace
-    return SimpleNamespace(returncode=0, stderr="", stdout="")
-
-
-def test_terminal_slot_unforced_exits_idempotently(ledger):
-    ledger([{"date": "2026-08-23", "status": "published", "source_file": "001", "prompt": "p1"}])
-    out = steps.draw_step(date="2026-08-23", runner=Boom())
-    assert out["done"] is True
+def test_first_run_of_the_day_takes_slot_zero(ledger):
+    ledger([])
+    out = steps.draw_step(date="2026-08-23", runner=_ok_runner)
     assert out["slot"] == 0
+    assert out["done"] is False
 
 
-def test_terminal_slot_forced_allocates_next_slot(ledger):
-    ledger([{"date": "2026-08-23", "status": "published", "source_file": "001", "prompt": "p1"}])
-    out = steps.draw_step(date="2026-08-23", force="true", runner=_ok_runner)
+def test_a_run_after_a_published_slot_publishes_again(ledger):
+    """If it runs, it publishes — no idempotent no-op for the operator."""
+    ledger([{"date": "2026-08-23", "slot": 0, "status": "published",
+             "source_file": "001", "prompt": "p1"}])
+    out = steps.draw_step(date="2026-08-23", runner=_ok_runner)
     assert out["done"] is False
     assert out["slot"] == 1
     assert out["source_file"] != "001"
 
 
-def test_forced_allocation_climbs_above_highest_slot(ledger):
+def test_a_run_after_a_skipped_slot_publishes_again(ledger):
+    ledger([{"date": "2026-08-23", "slot": 0, "status": "skipped",
+             "source_file": "001", "prompt": "p1"}])
+    assert steps.draw_step(date="2026-08-23", runner=_ok_runner)["slot"] == 1
+
+
+def test_slots_keep_climbing(ledger):
     ledger([
-        {"date": "2026-08-23", "status": "published", "source_file": "001", "prompt": "p1"},
-        {"date": "2026-08-23", "status": "published", "slot": 1, "source_file": "002", "prompt": "p2"},
+        {"date": "2026-08-23", "slot": 0, "status": "published", "source_file": "001"},
+        {"date": "2026-08-23", "slot": 1, "status": "published", "source_file": "002"},
     ])
-    out = steps.draw_step(date="2026-08-23", force="true", runner=_ok_runner)
-    assert out["slot"] == 2
+    assert steps.draw_step(date="2026-08-23", runner=_ok_runner)["slot"] == 2
 
 
-def test_force_resumes_an_in_flight_slot_instead_of_stranding_it(ledger):
-    """AC-07: the in-flight row may already guard a DA submit."""
-    ledger([{"date": "2026-08-23", "status": "drawn", "source_file": "001", "prompt": "p1"}])
-    out = steps.draw_step(date="2026-08-23", force="true", runner=Boom())
-    assert out["done"] is False
+def test_an_in_flight_slot_is_resumed_not_duplicated(ledger):
+    """The only diversion: its committed row may guard a live DA submit."""
+    ledger([{"date": "2026-08-23", "slot": 0, "status": "submitted",
+             "source_file": "001", "prompt": "p1"}])
+    out = steps.draw_step(date="2026-08-23", runner=Boom())
     assert out["slot"] == 0
     assert out["source_file"] == "001"
-
-
-def test_force_false_string_does_not_force(ledger):
-    """R-1 regression: "false" is truthy in Python."""
-    ledger([{"date": "2026-08-23", "status": "published", "source_file": "001", "prompt": "p1"}])
-    out = steps.draw_step(date="2026-08-23", force="false", runner=Boom())
-    assert out["done"] is True
-
-
-def test_draw_step_dry_run_commits_nothing(ledger):
-    ledger([])
-    out = steps.draw_step(date="2026-08-23", dry_run="true", runner=Boom())
     assert out["done"] is False
-    assert not (steps.LEDGER).exists() or steps.LEDGER.read_text() == ""
 
 
-def test_scheduled_path_regression_pin(ledger):
-    """AC-13: no inputs -> slot 0, draws, commits normally."""
-    ledger([])
-    out = steps.draw_step(date="2026-08-23", runner=_ok_runner)
-    assert all(k in out for k in DRAWN_KEYS)
-    assert out["slot"] == 0 and out["done"] is False
-    rows = [json.loads(x) for x in steps.LEDGER.read_text().splitlines()]
-    assert rows[0]["status"] == "drawn" and rows[0]["slot"] == 0
+def test_draw_step_takes_no_flags():
+    params = set(inspect.signature(steps.draw_step).parameters)
+    assert "dry_run" not in params and "force" not in params
+
+
+def test_publish_step_takes_no_dry_run():
+    assert "dry_run" not in inspect.signature(steps.publish_step).parameters
+
+
+def test_gate_step_takes_no_dry_run():
+    assert "dry_run" not in inspect.signature(steps.gate_step).parameters
 
 
 def test_generate_step_honours_explicit_model(monkeypatch):
     monkeypatch.setattr(steps, "generate_image", lambda *a, **k: "/tmp/x.png")
-    out = steps.generate_step("prompt", "2026-08-23", model="nano-banana-2")
+    out = steps.generate_step("p", "2026-08-23", model="nano-banana-2")
     assert out["model_name"] == "nano-banana-2"
 
 
 def test_generate_step_random_when_unpinned(monkeypatch):
     from tools.roster import ACTIVE_MODELS
     monkeypatch.setattr(steps, "generate_image", lambda *a, **k: "/tmp/x.png")
-    out = steps.generate_step("prompt", "2026-08-23")
-    assert out["model_name"] in ACTIVE_MODELS
-
-
-def test_publish_step_dry_run_touches_nothing_and_needs_no_secrets(monkeypatch, ledger):
-    for k in ("DA_CLIENT_ID", "DA_CLIENT_SECRET", "DA_REFRESH_TOKEN", "GH_PAT"):
-        monkeypatch.delenv(k, raising=False)
-    ledger([])
-    out = steps.publish_step(
-        post={"title": "T"}, image_path="/tmp/x.png", date="2026-08-23",
-        prompt="p", source_file="001", model_name="z-image", slot=0,
-        dry_run="true", runner=Boom(), session=Boom(),
-    )
-    assert out["dry_run"] is True
-    assert "url" not in out
-
-
-def test_publish_step_dry_run_writes_the_artifact_payload(ledger):
-    """AC-07: the post dict must reach the artifact, not just the log."""
-    ledger([])
-    out = steps.publish_step(
-        post={"title": "T", "tags": ["x"]}, image_path="/tmp/x.png",
-        date="2026-08-23", prompt="p", source_file="001",
-        model_name="z-image", slot=1, dry_run="true",
-        runner=Boom(), session=Boom(),
-    )
-    payload = json.loads((steps.REPO_DIR / "outputs" / "dry-run-post.json").read_text())
-    assert payload["post"]["title"] == "T"
-    assert payload["slot"] == 1 and payload["model"] == "z-image"
-    assert out["artifact"].endswith("dry-run-post.json")
-
-
-def test_gate_step_dry_run_does_not_commit_a_skip(ledger):
-    ledger([])
-    low = {"title": "T", "paragraphs": ["p"], "quote": None, "tags": ["x"],
-           "confidence": "low", "mature": False, "mature_level": None,
-           "mature_classification": []}
-    out = steps.gate_step(description=low, date="2026-08-23", prompt="p",
-                          source_file="001", slot=0, dry_run="true", runner=Boom())
-    assert out["publish"] is False
+    assert steps.generate_step("p", "2026-08-23")["model_name"] in ACTIVE_MODELS

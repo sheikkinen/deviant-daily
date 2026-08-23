@@ -65,49 +65,41 @@ with a token the first already invalidated while the secret write races.
 | Workflow | Trigger | Passes |
 |---|---|---|
 | `daily-publish` | cron `0 7 * * *` + dispatch | nothing — today's UTC date only |
-| `publish-now` | dispatch only | `dry_run`, `model`, `force`, `date` |
+| `publish-now` | dispatch only | `model`, `date` |
 
 ```bash
-gh workflow run publish-now.yml -f dry_run=true -f model=nano-banana-2
-gh workflow run publish-now.yml -f dry_run=false -f force=true   # extra post today
+gh workflow run publish-now.yml                          # publishes now
+gh workflow run publish-now.yml -f model=nano-banana-2   # pin the model
 ```
+
+**Running it publishes.** There is no dry-run flag and no force flag:
+invoking the workflow *is* the intent, and a button that does nothing
+by default is not a safety feature. Every run takes the next slot for
+the day and publishes it.
 
 ### Inputs
 
-- **`dry_run`** (default `true`) — runs draw → generate → describe →
-  gate and stops. It is **no-publication, not no-cost**:
-
-  | Guaranteed absent | Still spent |
-  |---|---|
-  | ledger commits, git commits, post files | Replicate generation |
-  | all DeviantArt calls (OAuth, submit, publish) | Anthropic vision |
-  | `gh secret set` token rotation | Actions minutes |
-
-  A dry run needs no DeviantArt secrets at all. Output is a run
-  artifact containing the image and the gate-passing post dict.
-
 - **`model`** (default `random`) — pin one roster entry. An unknown
   name raises `RosterError` rather than silently falling back.
-
-- **`force`** (default `false`) — publish an **extra** post on a date
-  that already has one. Allocates the next slot, and only above a
-  *terminal* slot: if the latest slot is still in flight, force resumes
-  it instead, because its committed row may already guard a DA submit.
-
 - **`date`** (default empty = today UTC) — strict `YYYY-MM-DD`.
 
-All four arrive as strings and are parsed in [tools/inputs.py](tools/inputs.py)
-before any side effect — `"false"` is truthy in Python, so an unparsed
-boolean would invert `force`/`dry_run`.
+Both arrive as strings and are parsed in [tools/inputs.py](tools/inputs.py)
+before any side effect.
 
 ### Slots
 
-Run identity is `(date, slot)`. Slot 0 is the scheduled run and writes
-`posts/<date>.md`; forced extras are slot 1, 2, … and write
-`posts/<date>-<slot>.md`. Ledger rows written before FR-862 have no
-`slot` field and normalize to 0 when read. Corpus no-repeat is global
-across dates and slots, so a forced post can never reuse a published
-prompt.
+Run identity is `(date, slot)`. The day's first run takes slot 0 and
+writes `posts/<date>.md`; each further run that day takes the next slot
+and writes `posts/<date>-<slot>.md`.
+
+The **one** thing that diverts a run: an in-flight slot (`drawn` or
+`submitted`) is resumed rather than duplicated, because its committed
+ledger row may already guard a DeviantArt call in flight (FR-826 R-3).
+That is crash recovery, not a guard against the operator.
+
+Ledger rows written before slots existed have no `slot` field and
+normalize to 0 when read. Corpus no-repeat is global across dates and
+slots, so no post can reuse a published prompt.
 
 ## Secrets
 

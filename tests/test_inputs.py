@@ -1,41 +1,13 @@
-"""Tests: dispatch input normalization (FR-862 R-1, AC-05).
+"""Tests: dispatch input normalization.
 
-Workflow inputs arrive as strings. `"false"` is truthy in Python, so an
-unparsed boolean would invert `force`/`dry_run` — a live publish when a
-dry run was asked for. Every value is parsed at the boundary and every
-invalid value raises BEFORE any side effect.
+Workflow inputs arrive as strings and are parsed at the boundary, before
+any side effect.
 """
 
 import pytest
 
-from tools.inputs import parse_date, parse_flag, parse_model, parse_slot
+from tools.inputs import parse_date, parse_model, parse_slot
 from tools.roster import ACTIVE_MODELS, RosterError
-
-
-@pytest.mark.parametrize("raw", ["false", "False", "FALSE"])
-def test_parse_flag_string_false_is_false(raw):
-    assert parse_flag(raw) is False
-
-
-@pytest.mark.parametrize("raw", ["true", "True", "TRUE"])
-def test_parse_flag_string_true_is_true(raw):
-    assert parse_flag(raw) is True
-
-
-def test_parse_flag_empty_uses_default():
-    assert parse_flag("", default=False) is False
-    assert parse_flag("", default=True) is True
-
-
-def test_parse_flag_passes_through_real_bools():
-    assert parse_flag(True) is True
-    assert parse_flag(False) is False
-
-
-@pytest.mark.parametrize("raw", ["yes", "1", "0", "no", "maybe", "  true"])
-def test_parse_flag_rejects_anything_else(raw):
-    with pytest.raises(ValueError):
-        parse_flag(raw)
 
 
 def test_parse_date_empty_is_today_utc():

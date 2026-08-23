@@ -62,8 +62,7 @@ def test_daily_passes_no_overrides():
 
 def test_publish_now_input_shape():
     inputs = triggers(load("publish-now.yml"))["workflow_dispatch"]["inputs"]
-    assert inputs["dry_run"]["type"] == "boolean" and inputs["dry_run"]["default"] is True
-    assert inputs["force"]["type"] == "boolean" and inputs["force"]["default"] is False
+    assert set(inputs) == {"model", "date"}, "no guard flags — running it publishes"
     assert inputs["date"]["type"] == "string" and inputs["date"]["default"] == ""
     assert inputs["model"]["type"] == "choice"
     assert inputs["model"]["default"] == "random"
@@ -74,6 +73,13 @@ def test_callers_declare_the_write_ceiling():
     """A called workflow cannot escalate beyond its caller (startup_failure)."""
     for name in ("daily.yml", "publish-now.yml"):
         assert load(name)["permissions"]["contents"] == "write"
+
+
+def test_no_guard_flags_survive_anywhere():
+    """dry_run/force were paternalistic ceremony — they must not creep back."""
+    for name in ("_pipeline.yml", "daily.yml", "publish-now.yml"):
+        text = (WF / name).read_text()
+        assert "dry_run" not in text and "force" not in text
 
 
 def test_secrets_are_not_inlined_in_the_callers():
