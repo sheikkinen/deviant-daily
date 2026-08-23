@@ -76,7 +76,12 @@ def validate_roster(unavailable: list[str] | None = None) -> dict[str, dict]:
     return usable
 
 
-def choose_model(rng: random.Random | None = None) -> tuple[str, dict]:
+def choose_model(rng: random.Random | None = None, name: str = "") -> tuple[str, dict]:
+    """Random over the roster, or exactly `name` when pinned (FR-862)."""
     usable = validate_roster()
-    name = (rng or random).choice(sorted(usable))
-    return name, usable[name]
+    if name:
+        if name not in usable:
+            raise RosterError(f"model {name!r} not in roster {sorted(usable)}")
+        return name, usable[name]
+    chosen = (rng or random).choice(sorted(usable))
+    return chosen, usable[chosen]

@@ -1,0 +1,46 @@
+name: publish-now
+
+# Manual counterpart to daily-publish (FR-862). Defaults are deliberately
+# safe: dry_run=true means an accidental dispatch publishes nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "No DA calls, no commits (still spends Replicate + LLM tokens)"
+        type: boolean
+        default: true
+      model:
+        description: "Pin one roster model, or random"
+        type: choice
+        default: random
+        options:
+          - random
+          - flux-2-flex
+          - grok
+          - nano-banana-2
+          - z-image
+      force:
+        description: "Publish an extra post on a date that already has one"
+        type: boolean
+        default: false
+      date:
+        description: "ISO date override (empty = today UTC)"
+        type: string
+        default: ""
+
+# MUST match daily.yml: overlapping runs both refresh the DA token, which
+# rotates on every use — the second run would authenticate with a token the
+# first already invalidated while the secret write races.
+concurrency:
+  group: daily-publish
+  cancel-in-progress: false
+
+jobs:
+  run:
+    uses: ./.github/workflows/_pipeline.yml
+    secrets: inherit
+    with:
+      dry_run: ${{ inputs.dry_run && 'true' || 'false' }}
+      model: ${{ inputs.model }}
+      force: ${{ inputs.force && 'true' || 'false' }}
+      date: ${{ inputs.date }}

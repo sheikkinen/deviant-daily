@@ -9,7 +9,7 @@ from tools.corpus import CorpusExhausted, draw_prompt
 from tools.ledger import (
     LedgerCommitError,
     append_entry,
-    entry_for_date,
+    entry_for_slot,
     read_ledger,
     record_transition,
 )
@@ -46,14 +46,14 @@ def test_invalid_status_rejected(repo):
         append_entry(repo / "state" / "l.jsonl", {"date": "d", "status": "bogus"})
 
 
-def test_entry_for_date_latest_wins(repo):
+def test_entry_for_slot_latest_wins(repo):
     entries = [
-        {"date": "2026-08-19", "status": "drawn"},
-        {"date": "2026-08-19", "status": "submitted"},
-        {"date": "2026-08-18", "status": "published"},
+        {"date": "2026-08-19", "status": "drawn", "slot": 0},
+        {"date": "2026-08-19", "status": "submitted", "slot": 0},
+        {"date": "2026-08-18", "status": "published", "slot": 0},
     ]
-    assert entry_for_date(entries, "2026-08-19")["status"] == "submitted"
-    assert entry_for_date(entries, "2026-08-20") is None
+    assert entry_for_slot(entries, "2026-08-19")["status"] == "submitted"
+    assert entry_for_slot(entries, "2026-08-20") is None
 
 
 def test_record_transition_commits(repo):
@@ -95,7 +95,8 @@ def test_draw_resumes_same_day(repo, tmp_path):
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text(json.dumps({"prompt": "p", "source_file": "s1"}))
     entries = [
-        {"date": "2026-08-19", "status": "drawn", "prompt": "orig", "source_file": "sX"}
+        {"date": "2026-08-19", "status": "drawn", "prompt": "orig",
+         "source_file": "sX", "slot": 0}
     ]
     drawn = draw_prompt(corpus, entries, "2026-08-19")
     assert drawn["resumed"] is True
@@ -106,7 +107,7 @@ def test_draw_resumes_same_day(repo, tmp_path):
 def test_draw_terminal_day_reports_status(tmp_path):
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text(json.dumps({"prompt": "p", "source_file": "s1"}))
-    entries = [{"date": "2026-08-19", "status": "published", "source_file": "s1"}]
+    entries = [{"date": "2026-08-19", "status": "published", "source_file": "s1", "slot": 0}]
     drawn = draw_prompt(corpus, entries, "2026-08-19")
     assert drawn["resumed"] is True
     assert drawn["status"] == "published"

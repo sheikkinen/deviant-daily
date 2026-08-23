@@ -31,14 +31,20 @@ def render_artist_comments(post: PostDescription) -> str:
     return PARA_SEP.join(parts)
 
 
+def post_path(date: str, slot: int = 0) -> str:
+    """Repo-relative post path; slot 0 keeps the original filename."""
+    return f"posts/{date}.md" if slot == 0 else f"posts/{date}-{slot}.md"
+
+
 def render_post_md(
     post: PostDescription,
     prompt: str,
     model_name: str,
     da_url: str | None,
     date: str,
+    slot: int = 0,
 ) -> str:
-    """posts/YYYY-MM-DD.md content: title, paragraphs, quote, tags, provenance."""
+    """Post markdown: title, paragraphs, quote, tags, provenance."""
     parts = [f"# {post.title}", ""]
     for para in post.paragraphs:
         parts += [para, ""]
@@ -49,6 +55,7 @@ def render_post_md(
         "---",
         "",
         f"- date: {date}",
+        f"- slot: {slot}",
         f"- model: {model_name}",
         f"- deviation: {da_url or 'N/A'}",
         f"- prompt: {prompt}",

@@ -7,33 +7,14 @@ on:
   schedule:
     - cron: "0 7 * * *"
 
-permissions:
-  contents: write
-
+# Shared with publish-now.yml — see the note there (DA token rotation).
 concurrency:
   group: daily-publish
   cancel-in-progress: false
 
 jobs:
+  # No `with:` on purpose (FR-862 AC-04): the scheduled path passes no
+  # model, force, dry-run, or date override — it stays what it was.
   publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install yamlgraph replicate httpx requests pyyaml
-      # git identity BEFORE the run: ledger transitions commit mid-pipeline
-      - run: |
-          git config user.name "deviant-daily-bot"
-          git config user.email "actions@github.com"
-      - name: Run pipeline (yamlgraph orchestrates; FR-826 R-1)
-        run: yamlgraph graph run graph.yaml --var date="$(date -u +%F)" --full
-        env:
-          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          DA_CLIENT_ID: ${{ secrets.DA_CLIENT_ID }}
-          DA_CLIENT_SECRET: ${{ secrets.DA_CLIENT_SECRET }}
-          DA_REFRESH_TOKEN: ${{ secrets.DA_REFRESH_TOKEN }}
-          GH_PAT: ${{ secrets.GH_PAT }}
-          PROVIDER: anthropic
+    uses: ./.github/workflows/_pipeline.yml
+    secrets: inherit
