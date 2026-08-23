@@ -12,7 +12,8 @@ template: |
   Return the structured fields by name: title, paragraphs, quote, tags,
   confidence, mature, mature_level, and mature_classification.
 
-  title: Write a poetic, evocative English title. Never echo the prompt, never
+  title: Write a poetic, evocative English title of at most 50 characters —
+  DeviantArt rejects anything longer. Never echo the prompt, never
   paraphrase it as a caption, and never use a generic inventory label.
 
   paragraphs: Write 3-4 atmospheric myth-building paragraphs that evoke the

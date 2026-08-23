@@ -20,6 +20,11 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 
 TAG_RE = re.compile(r"^[a-z0-9_]+$")
 
+# DeviantArt rejects longer titles at stash/submit ("title has incorrect
+# length", run 32624528720). The constraint is theirs; we mirror it here
+# so a three-character overrun never costs a day's post.
+DA_TITLE_MAX = 50
+
 # DA stash/publish mature_classification enum (FR-822 contract)
 MatureClassification = Literal["nudity", "sexual", "gore", "language", "ideology"]
 
@@ -27,7 +32,7 @@ MatureClassification = Literal["nudity", "sexual", "gore", "language", "ideology
 class PostDescription(BaseModel):
     """Validated describe output — the only shape allowed to publish."""
 
-    title: str = Field(min_length=1, max_length=120)
+    title: str = Field(min_length=1, max_length=DA_TITLE_MAX)
     paragraphs: list[str] = Field(min_length=1)
     quote: str | None = None
     tags: list[str] = Field(min_length=1, max_length=10)
@@ -35,6 +40,17 @@ class PostDescription(BaseModel):
     mature: bool
     mature_level: Literal["strict", "moderate"] | None = None
     mature_classification: list[MatureClassification] = Field(default_factory=list)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def title_fits_deviantart(cls, v: str) -> str:
+        if not isinstance(v, str):
+            return v
+        v = v.strip()
+        if len(v) <= DA_TITLE_MAX:
+            return v
+        trimmed = v[:DA_TITLE_MAX].rsplit(" ", 1)[0].rstrip(" ,:;-\u2014")
+        return trimmed or v[:DA_TITLE_MAX]
 
     @field_validator("tags")
     @classmethod
