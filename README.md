@@ -45,8 +45,10 @@ exits idempotently. A post-publish commit failure fails the run as
 | Model | Slug | Status |
 |---|---|---|
 | z-image | `prunaai/z-image-turbo` | active |
-| flux-ultra | `black-forest-labs/flux-1.1-pro-ultra` | active |
-| grok | xai/grok-imagine-image-2 | 16:9, 2k, quality medium |
+| flux-2-flex | `black-forest-labs/flux-2-flex` | active — 16:9, 2 MP, png |
+| nano-banana-2 | `google/nano-banana-2` | active — 16:9, 2K, png |
+| grok | `xai/grok-imagine-image-2` | active — 16:9, 2k, quality medium |
+| flux-ultra | `black-forest-labs/flux-1.1-pro-ultra` | retired 2026-08-23 (superseded) |
 
 ## Secrets
 
