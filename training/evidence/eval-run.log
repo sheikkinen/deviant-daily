@@ -1,0 +1,14 @@
+/Users/sami.j.p.heikkinen/src/deviant-daily/.venv/lib/python3.11/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /Users/runner/work/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)
+  cpu = _conversion_method_template(device=torch.device("cpu"))
+{"markov": {"novelty": 167, "pass": 15, "shape": 18}}
+{"transformer": {"temp": 0.5, "novelty": 37, "shape": 75, "pass": 88}}
+{"transformer": {"temp": 0.8, "pass": 165, "shape": 33, "novelty": 2}}
+{"transformer": {"temp": 1.2, "pass": 164, "shape": 33, "novelty": 3}}
+# Rejection statistics (200 samples per cell)
+
+| rung | temp | pass | redaction | novelty | shape |
+|------|------|------|-----------|---------|-------|
+| markov | 0.0 | 15 | 0 | 167 | 18 |
+| transformer | 0.5 | 88 | 0 | 37 | 75 |
+| transformer | 0.8 | 165 | 0 | 2 | 33 |
+| transformer | 1.2 | 164 | 0 | 3 | 33 |
