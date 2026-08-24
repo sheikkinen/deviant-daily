@@ -1,8 +1,8 @@
-# Feature Request: Strip-Not-Drop Name Redaction — Recover 2,020 Blocklist-Excluded Prompts
+# Feature Request: Strip-Not-Drop Name Redaction — Recover Blocklist-Excluded Prompts (2,020 candidates)
 
 **Priority:** MEDIUM
 **Type:** Enhancement
-**Status:** Proposed
+**Status:** Judged — approved with revisions (R-1..R-4 folded)
 **Effort:** 0.5 days
 **Requested:** 2026-08-24
 **First consumer / first event:** the daily draw step, on the first run
@@ -18,9 +18,11 @@ zero-leak invariant; the prompts themselves are recovered.
 
 ## Value Statement
 
-The draw step gets 2,020 additional unique prompts (25% of all usable
-material) that are currently discarded for a one-token contamination,
-at zero LLM cost and with the redaction guarantee mechanically intact.
+The draw step gets up to 2,020 additional unique prompts (25% of all
+usable material — the name-contaminated **candidate pool**; final
+recovery is whatever survives the post-strip short/dedup/term/scan
+gates) at zero LLM cost, with the redaction guarantee mechanically
+intact.
 
 ## Problem
 
@@ -68,34 +70,55 @@ In `scripts/extract_corpus.py`:
 2. Stripped prompts then pass the **existing** gates unchanged:
    `len < 10` → empty, lowercase dedup → duplicates, SCAN_PATTERNS →
    scan_hits.
-3. **Zero-leak invariant (hard gate):** after writing the corpus, scan
-   the emitted JSONL with `name_blocklist_re`; any match ⇒ raise, no
-   partial output. This is the redaction policy, mechanized — same
-   pattern as the existing AC-04 SCAN_PATTERNS gate.
-4. Stats: replace `name_excluded` with `name_stripped` (segments
-   removed) and `name_recovered` (rows kept that v2 would have
-   dropped).
-5. Regenerate `prompts/corpus.jsonl` (v2.1); back up v2 to /tmp first.
+3. **Zero-leak invariant (hard gate, atomic — R-1):** scan the
+   serialized rows with `name_blocklist_re` BEFORE finalizing
+   `out_path` (write to a temp file, atomically replace only after the
+   scan passes). On a seeded leak: raise, and the destination is absent
+   or byte-for-byte unchanged — no unsafe final artifact, ever. Same
+   no-unsafe-output property as the existing SCAN_PATTERNS gate.
+4. Stats (R-2): `name_candidates` (rows containing a blocklist match),
+   `name_stripped_segments` (segments removed),
+   `name_recovered_rows` (rows kept that exclusion would have dropped),
+   plus post-strip drops by reason. Canonical regeneration must satisfy
+   `kept == 5893 + name_recovered_rows`; final counts recorded here.
+5. Doc drift (R-3): update README corpus provenance and the extractor
+   docstring from "names excluded" to "name-bearing segments stripped,
+   zero-leak scan enforced".
+6. Traceability (R-4): CAP-09 gains requirement text for strip-not-drop
+   redaction and the zero-leak invariant; every new test carries
+   `@pytest.mark.req(...)`.
+7. Regenerate `prompts/corpus.jsonl` (v2.1); back up v2 to /tmp first.
 
 Out of scope (explicit): TERM_BLOCKLIST stays whole-row exclusion —
 that is content policy, not identity redaction. LLM rewriting of
 identity residue in non-adjacent descriptors ("34yo finnish woman")
 is out of scope per operator ratification of the mechanical tier.
 
-## Acceptance Criteria
+## Acceptance Criteria (revised per judgement)
 
-- [ ] RED fixture covers the observed name forms: `nina1`, `katja_x`,
+- [ ] AC-01: Requirement-marked RED tests cover `nina1`, `katja_x`,
       `Tuija's`, `Nina Heikkinen` (adjacent surname, same segment),
-      a comma-free prose sentence, and a prompt that is *only* a name
-      (must drop via short gate)
-- [ ] Zero-leak invariant: emitted corpus has 0 `name_blocklist_re`
-      matches, enforced by raise (test witnesses the raise on a
-      seeded leak)
-- [ ] `kept` rises from 5,893; `name_recovered` reported in stats
-- [ ] Recovered rows carry full v2 metadata (dialect, seed, size,
-      created) — same code path, no special casing
-- [ ] Existing FR-883 tests stay green (REQ-DD-080..082)
-- [ ] Corpus v2.1 regenerated and committed; counts recorded in the FR
+      comma-free prose sentence stripping, and a name-only prompt
+      dropping through the existing short/empty gate
+- [ ] AC-02: Name-bearing comma/sentence-delimited segments stripped
+      mechanically with existing substring/IGNORECASE semantics;
+      TERM_BLOCKLIST stays whole-row exclusion
+- [ ] AC-03: Zero-leak scan runs before finalizing `out_path`; seeded
+      leak raises and leaves no new partial/unsafe destination artifact
+- [ ] AC-04: Stats distinguish `name_candidates`,
+      `name_stripped_segments`, `name_recovered_rows`, post-strip drops
+      by reason; canonical run satisfies `kept == 5893 +
+      name_recovered_rows` with counts recorded in this FR
+- [ ] AC-05: Recovered rows use the same v2 metadata path (dialect,
+      seed, size, created) — no special-case schema
+- [ ] AC-06: FR-883 preservation tests stay green (v1 prompts present,
+      ledger source ids resolve, Signed blocks excluded,
+      REQ-DD-080..082 intact)
+- [ ] AC-07: Corpus v2.1 regenerated and committed; mechanical scan of
+      committed JSONL finds zero NAME_BLOCKLIST matches
+- [ ] AC-08: README corpus provenance, extractor docstring, CAP-09, and
+      this FR's implementation record state the new contract and final
+      counts
 
 ## Alternatives Considered
 
