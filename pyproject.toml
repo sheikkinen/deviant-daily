@@ -31,6 +31,7 @@ packages = ["tools", "training"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["req(id): links a test to one or more requirement IDs"]
 
 [tool.ruff]
 line-length = 88

@@ -80,6 +80,7 @@ def env(monkeypatch, tmp_path):
     return tmp_path, str(img)
 
 
+@pytest.mark.req("REQ-DD-060", "REQ-DD-061", "REQ-DD-062")
 def test_persist_before_any_da_side_effect(env):
     _tmp_path, img = env
     rec = Recorder()
@@ -95,6 +96,7 @@ def test_persist_before_any_da_side_effect(env):
     assert o.index("http:publish") < o.index("git:commit-2")
 
 
+@pytest.mark.req("REQ-DD-060")
 def test_persist_failure_aborts_before_submit(env):
     _tmp_path, img = env
     rec = Recorder(fail_gh=True)
@@ -105,6 +107,7 @@ def test_persist_failure_aborts_before_submit(env):
     assert not any(x in rec.order for x in ("http:submit", "http:publish"))
 
 
+@pytest.mark.req("REQ-DD-061")
 def test_submitted_commit_failure_blocks_submit(env):
     _tmp_path, img = env
     rec = Recorder(fail_git_on_call=1)
@@ -115,6 +118,7 @@ def test_submitted_commit_failure_blocks_submit(env):
     assert "http:submit" not in rec.order
 
 
+@pytest.mark.req("REQ-DD-062")
 def test_post_publish_commit_failure_is_recovery_required(env):
     _tmp_path, img = env
     rec = Recorder(fail_git_on_call=2)
@@ -126,6 +130,7 @@ def test_post_publish_commit_failure_is_recovery_required(env):
     assert "https://da/dev" in str(exc.value)
 
 
+@pytest.mark.req("REQ-DD-063")
 def test_publish_writes_post_md_without_image(env):
     tmp_path, img = env
     rec = Recorder()
@@ -146,6 +151,7 @@ def test_publish_writes_post_md_without_image(env):
     assert not list((tmp_path / "posts").glob("*.png"))
 
 
+@pytest.mark.req("REQ-DD-064")
 def test_gate_skip_committed_before_green(env, monkeypatch):
     tmp_path, _ = env
     rec = Recorder()

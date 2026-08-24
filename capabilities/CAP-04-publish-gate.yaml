@@ -1,0 +1,21 @@
+name: Publish gate
+id: CAP-04
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_gate.py.
+requirements:
+  - id: REQ-DD-014
+    description: >
+      A complete and valid post with high confidence is accepted by the publishing gate and returned as a PostDescription.
+  - id: REQ-DD-015
+    description: >
+      Posts with low or medium confidence are not published; low confidence rejection includes a confidence reason.
+  - id: REQ-DD-016
+    description: >
+      Tags are normalized to lowercase with spaces and punctuation converted to underscores, and tags containing invalid characters are rejected with a schema reason.
+  - id: REQ-DD-017
+    description: >
+      Mature posts require mature_level and mature_classification; non-mature posts must not include mature_level; unsupported mature classifications are rejected.
+  - id: REQ-DD-018
+    description: >
+      Posts missing required fields or containing an empty paragraphs list are rejected with a schema reason.

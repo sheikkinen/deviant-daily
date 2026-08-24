@@ -1,18 +1,23 @@
-# Ramp Tier-1 CI asset — INERT SETUP STUB, not an active gate.
-# Installed by scripts/ramp.sh. It runs only on manual dispatch and
-# prints the operator steps for the supported target contract
-# (Python + pyproject.toml + pytest tests/ + ruff). Replace this job
-# with the real suite to activate CI.
-name: ci-setup-stub
-on: workflow_dispatch
+name: tests
+
+# FR-867 R-4: this is DETECTION, not blocking. The repo has no branch
+# protection and no required status contexts, so a red run reports but
+# does not stop a push. Local pre-commit is what blocks.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
 jobs:
-  setup-instructions:
+  suite:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "This workflow is the ramp CI setup stub — CI is NOT active yet."
-          echo "To activate, replace this job with the documented command path:"
-          echo "  pip install -e '.[dev]'"
-          echo "  ruff check ."
-          echo "  pytest tests/ -q"
-          echo "and add push/pull_request triggers."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]" pillow
+      - run: ruff check tools tests
+      - run: python -m pytest tests/ -q
+      - name: Requirement traceability
+        run: python scripts/req_coverage.py --strict

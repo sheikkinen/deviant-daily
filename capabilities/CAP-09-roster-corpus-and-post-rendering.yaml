@@ -1,0 +1,39 @@
+name: Roster, corpus and post rendering
+id: CAP-09
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_roster_corpus_post.py.
+requirements:
+  - id: REQ-DD-041
+    description: >
+      The roster must freeze active model entries to the approved slugs and keep the disabled model set empty.
+  - id: REQ-DD-042
+    description: >
+      Roster validation must hard-fail with RosterError when every active model is unavailable.
+  - id: REQ-DD-043
+    description: >
+      Roster validation must log structured warnings for unavailable models and continue to return the remaining usable models.
+  - id: REQ-DD-044
+    description: >
+      Seeded model selection must deterministically return a valid active model with a slug config.
+  - id: REQ-DD-045
+    description: >
+      Prompt sanitization must remove LoRA tags and weight annotations while preserving surrounding text.
+  - id: REQ-DD-046
+    description: >
+      The name blocklist must match real-person name variants while not matching benign non-name phrases.
+  - id: REQ-DD-047
+    description: >
+      The term blocklist must match stem and embedded variants but not unrelated words that merely share letters.
+  - id: REQ-DD-048
+    description: >
+      Corpus entry parsing must treat the prompt as ending at the Steps line and include wrapped continuation lines before it.
+  - id: REQ-DD-049
+    description: >
+      Corpus extraction must reduce source filenames to their stable ID for the corpus JSON record.
+  - id: REQ-DD-050
+    description: >
+      Post Markdown rendering must produce the expected shape with title, paragraphs, quote, tag, deviation link, and model name.
+  - id: REQ-DD-051
+    description: >
+      Artist comment rendering must preserve blank-line separation using non-breaking-space lines, avoid raw double newlines, and end with the description footer and gallery link.

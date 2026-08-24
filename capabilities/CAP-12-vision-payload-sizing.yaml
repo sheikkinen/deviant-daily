@@ -1,0 +1,21 @@
+name: Vision payload sizing
+id: CAP-12
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_vision_size.py.
+requirements:
+  - id: REQ-DD-065
+    description: >
+      The vision payload preparation function must always re-encode the submitted image; a small image must not be passed through unchanged and must be returned as JPEG.
+  - id: REQ-DD-066
+    description: >
+      When the base64-encoded vision payload exceeds MAX_B64_BYTES, preparation must shrink it until the encoded payload is at or below MAX_B64_BYTES and must return a supported media type (PNG or JPEG).
+  - id: REQ-DD-067
+    description: >
+      When shrinking an image for vision, preparation must preserve the original aspect ratio within tolerance and cap the longest edge at MAX_EDGE.
+  - id: REQ-DD-068
+    description: >
+      The MAX_EDGE cap is independent of the byte-size cap: an image with oversized dimensions must be reduced to fit MAX_EDGE even when its base64 payload already fits within MAX_B64_BYTES.
+  - id: REQ-DD-069
+    description: >
+      Vision payload preparation must never modify the original image file bytes; the source file must remain unchanged after the vision copy is shrunk.

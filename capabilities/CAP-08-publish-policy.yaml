@@ -1,0 +1,30 @@
+name: Publish policy
+id: CAP-08
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_publish_policy.py.
+requirements:
+  - id: REQ-DD-033
+    description: >
+      The publish gate must block 'low' confidence submissions with reason 'confidence: low' and allow 'high' and 'medium' confidence submissions through the confidence check.
+  - id: REQ-DD-034
+    description: >
+      High confidence submissions must publish with the declared mature flag and mature_level preserved without escalation.
+  - id: REQ-DD-035
+    description: >
+      Medium confidence submissions without an existing mature classification must publish with mature set to True and mature_level set to 'moderate'.
+  - id: REQ-DD-036
+    description: >
+      Medium confidence submissions that already have a mature classification must preserve the model's mature_level and mature_classification values.
+  - id: REQ-DD-037
+    description: >
+      Schema validation failures must block publishing even when confidence is 'high', with a reason starting with 'schema:'.
+  - id: REQ-DD-038
+    description: >
+      Vision payload preparation must process every image through the downscaler without a small-image skip branch and must return JPEG media type.
+  - id: REQ-DD-039
+    description: >
+      Vision payload preparation must cap the largest output image dimension at MAX_EDGE.
+  - id: REQ-DD-040
+    description: >
+      Vision payload preparation for large images must reduce pixel count to less than one quarter of the original and keep the base64-encoded payload within MAX_B64_BYTES.

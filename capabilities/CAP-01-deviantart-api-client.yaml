@@ -1,0 +1,27 @@
+name: DeviantArt API client
+id: CAP-01
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_da_api.py.
+requirements:
+  - id: REQ-DD-001
+    description: >
+      The token refresh operation must call the token URL with the current refresh token and a mandatory User-Agent header, and return the rotated refresh token from the response.
+  - id: REQ-DD-002
+    description: >
+      The token refresh operation must raise DAApiError when the refresh token is rejected, such as on HTTP 401 invalid_grant.
+  - id: REQ-DD-003
+    description: >
+      DA API requests must back off and retry on HTTP 429 responses, succeeding when a retry succeeds and raising DAApiError after exhausting the maximum retry count.
+  - id: REQ-DD-004
+    description: >
+      The stash submit request must be sent to the stash/submit endpoint with multipart file data, AI-generation flags, tag fields, and Bearer token authorization, and must return the assigned item id.
+  - id: REQ-DD-005
+    description: >
+      The stash publish request must set maturity and AI-generation flags for both mature and non-mature posts, including mature_level and mature_classification[] for mature posts while omitting mature_level for non-mature posts.
+  - id: REQ-DD-006
+    description: >
+      A publish response with error_code 9 must be treated as an idempotent already-published success, while other publish errors must raise DAApiError.
+  - id: REQ-DD-007
+    description: >
+      The refresh secret persistence command must invoke 'gh secret set' with the secret provided on stdin and a GH_TOKEN env variable, never on argv, and must raise TokenPersistError if the command fails.

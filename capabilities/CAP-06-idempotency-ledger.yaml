@@ -1,0 +1,30 @@
+name: Idempotency ledger
+id: CAP-06
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_ledger.py.
+requirements:
+  - id: REQ-DD-022
+    description: >
+      The ledger SHALL support appending an entry with a valid status and reading back that entry preserving its status.
+  - id: REQ-DD-023
+    description: >
+      An entry with an invalid status SHALL be rejected when appended to the ledger.
+  - id: REQ-DD-024
+    description: >
+      Recording a transition SHALL commit the ledger change by invoking git add, git commit, pull --rebase, and git push.
+  - id: REQ-DD-025
+    description: >
+      A failed commit or push during a transition SHALL raise LedgerCommitError before returning.
+  - id: REQ-DD-026
+    description: >
+      The drawing function SHALL avoid drawing a prompt whose source_file was previously published for a prior day.
+  - id: REQ-DD-027
+    description: >
+      When a drawing already exists for the same day, the draw function SHALL resume it with the original prompt and source_file.
+  - id: REQ-DD-028
+    description: >
+      When the same day's entry is already published, the draw function SHALL report the terminal published status while marking the draw as resumed.
+  - id: REQ-DD-029
+    description: >
+      When the corpus is exhausted, drawing SHALL raise CorpusExhausted.

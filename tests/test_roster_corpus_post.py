@@ -24,6 +24,7 @@ extract_corpus = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_spec and extract_corpus)
 
 
+@pytest.mark.req("REQ-DD-041")
 def test_roster_frozen_models():
     assert ACTIVE_MODELS["z-image"]["slug"] == "prunaai/z-image-turbo"
     assert (
@@ -43,11 +44,13 @@ def test_roster_output_format_is_da_safe():
         assert ACTIVE_MODELS[name]["params"]["output_format"] == "png"
 
 
+@pytest.mark.req("REQ-DD-042")
 def test_roster_zero_active_hard_fails():
     with pytest.raises(RosterError):
         validate_roster(unavailable=list(ACTIVE_MODELS))
 
 
+@pytest.mark.req("REQ-DD-043")
 def test_roster_drop_logs_structured(caplog):
     import logging
 
@@ -57,12 +60,14 @@ def test_roster_drop_logs_structured(caplog):
     assert any("model=z-image" in r.message for r in caplog.records)
 
 
+@pytest.mark.req("REQ-DD-044")
 def test_choose_model_deterministic_with_seed():
     name, config = choose_model(random.Random(1))
     assert name in ACTIVE_MODELS
     assert "slug" in config
 
 
+@pytest.mark.req("REQ-DD-045")
 def test_sanitize_strips_lora():
     s = extract_corpus.sanitize("a hero <lora:flux_lora_x:0.5> fighting (bold:1.2)")
     assert "<lora" not in s
@@ -70,6 +75,7 @@ def test_sanitize_strips_lora():
     assert "bold)" in s
 
 
+@pytest.mark.req("REQ-DD-046")
 def test_name_blocklist_catches_variants():
     r = extract_corpus.name_blocklist_re(extract_corpus.NAME_BLOCKLIST)
     for text in ("portrait of Nina", "nina_heikkinen_style", "NINA1 model", "katja"):
@@ -77,6 +83,7 @@ def test_name_blocklist_catches_variants():
     assert not r.search("feminine energy luminous")
 
 
+@pytest.mark.req("REQ-DD-047")
 def test_term_blocklist_stems_not_substrings():
     r = extract_corpus.term_blocklist_re(extract_corpus.TERM_BLOCKLIST)
     for text in ("raped by ogre", "(rape)", "girl_raped"):
@@ -85,6 +92,7 @@ def test_term_blocklist_stems_not_substrings():
         assert not r.search(text), text
 
 
+@pytest.mark.req("REQ-DD-048")
 def test_parse_entries_prompt_ends_at_steps():
     lines = [
         "==== File: 00001-123-foo.png ====",
@@ -100,6 +108,7 @@ def test_parse_entries_prompt_ends_at_steps():
     ]
 
 
+@pytest.mark.req("REQ-DD-049")
 def test_source_file_reduced_to_id(tmp_path):
     log = tmp_path / "signed.log"
     log.write_text(
@@ -115,6 +124,7 @@ def test_source_file_reduced_to_id(tmp_path):
     assert row["source_file"] == "00314-268"
 
 
+@pytest.mark.req("REQ-DD-050")
 def test_render_post_md_shape():
     post = PostDescription(
         title="Veil",
@@ -130,6 +140,7 @@ def test_render_post_md_shape():
     assert "- model: z-image" in md
 
 
+@pytest.mark.req("REQ-DD-051")
 def test_render_artist_comments_style_contract():
     from tools.post import DESCRIPTION_FOOTER, render_artist_comments
 

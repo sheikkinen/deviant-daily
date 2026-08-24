@@ -1,0 +1,12 @@
+name: External constraint mirroring
+id: CAP-03
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_external_constraints.py.
+requirements:
+  - id: REQ-DD-012
+    description: >
+      The external DeviantArt title-length constraint must be mirrored by evaluate_gate: short titles remain unchanged, and titles longer than DA_TITLE_MAX are trimmed to at most DA_TITLE_MAX ending on a word boundary.
+  - id: REQ-DD-013
+    description: >
+      row_id must give deterministic distinct IDs to unknown source_file rows while preserving real source_file values as their own IDs, so publishing one unknown row does not exclude other unknown rows from future draws.

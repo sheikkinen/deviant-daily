@@ -1,0 +1,15 @@
+name: Media type detection
+id: CAP-07
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_media_type.py.
+requirements:
+  - id: REQ-DD-030
+    description: >
+      The system shall identify media type from content magic bytes, recognizing PNG content as image/png and JPEG content as image/jpeg.
+  - id: REQ-DD-031
+    description: >
+      The system shall raise ValueError when content magic bytes do not match a supported media type.
+  - id: REQ-DD-032
+    description: >
+      The system shall use the content-derived media type, not the file extension, when constructing the base64 data URL used in describe_image.

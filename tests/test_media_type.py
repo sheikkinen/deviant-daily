@@ -19,19 +19,23 @@ def _real_jpeg(width: int = 640, height: int = 360) -> bytes:
     return buf.getvalue()
 
 
+@pytest.mark.req("REQ-DD-030")
 def test_png_magic():
     assert detect_media_type(PNG) == "image/png"
 
 
+@pytest.mark.req("REQ-DD-030")
 def test_jpeg_magic():
     assert detect_media_type(JPEG) == "image/jpeg"
 
 
+@pytest.mark.req("REQ-DD-031")
 def test_unknown_raises():
     with pytest.raises(ValueError):
         detect_media_type(b"GIF89a not supported")
 
 
+@pytest.mark.req("REQ-DD-032")
 def test_describe_uses_content_type(tmp_path):
     """A .png-named file with JPEG content must be declared image/jpeg."""
     img = tmp_path / "lying-name.png"

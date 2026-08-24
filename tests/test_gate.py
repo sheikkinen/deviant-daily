@@ -1,5 +1,7 @@
 """Tests: gate schema, tags, mature combos (AC-10, AC-13, AC-18)."""
 
+import pytest
+
 from tools.gate import PostDescription, evaluate_gate
 
 VALID = {
@@ -12,12 +14,14 @@ VALID = {
 }
 
 
+@pytest.mark.req("REQ-DD-014")
 def test_valid_post_publishes():
     r = evaluate_gate(VALID)
     assert r.publish is True
     assert isinstance(r.post, PostDescription)
 
 
+@pytest.mark.req("REQ-DD-015")
 def test_low_confidence_skips():
     r = evaluate_gate({**VALID, "confidence": "low"})
     assert r.publish is False
@@ -31,18 +35,21 @@ def test_medium_confidence_publishes_escalated():
     assert r.post.mature is True
 
 
+@pytest.mark.req("REQ-DD-016")
 def test_tags_normalized():
     r = evaluate_gate({**VALID, "tags": ["Dark Fantasy", "Ink-Punk"]})
     assert r.publish is True
     assert r.post.tags == ["dark_fantasy", "ink_punk"]
 
 
+@pytest.mark.req("REQ-DD-016")
 def test_invalid_tags_reject():
     r = evaluate_gate({**VALID, "tags": ["ok", "bäd tág!"]})
     assert r.publish is False
     assert "schema" in r.reason
 
 
+@pytest.mark.req("REQ-DD-017")
 def test_mature_true_requires_level_and_classification():
     r = evaluate_gate({**VALID, "mature": True})
     assert r.publish is False
@@ -57,11 +64,13 @@ def test_mature_true_requires_level_and_classification():
     assert ok.publish is True
 
 
+@pytest.mark.req("REQ-DD-017")
 def test_mature_false_forbids_level():
     r = evaluate_gate({**VALID, "mature_level": "strict"})
     assert r.publish is False
 
 
+@pytest.mark.req("REQ-DD-017")
 def test_invalid_classification_rejects():
     r = evaluate_gate(
         {
@@ -74,11 +83,13 @@ def test_invalid_classification_rejects():
     assert r.publish is False
 
 
+@pytest.mark.req("REQ-DD-018")
 def test_missing_fields_reject():
     r = evaluate_gate({"title": "x"})
     assert r.publish is False
     assert r.reason.startswith("schema")
 
 
+@pytest.mark.req("REQ-DD-018")
 def test_empty_paragraphs_reject():
     assert evaluate_gate({**VALID, "paragraphs": []}).publish is False

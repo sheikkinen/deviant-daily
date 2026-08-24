@@ -1,0 +1,36 @@
+name: Workflow shape
+id: CAP-13
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_workflows.py.
+requirements:
+  - id: REQ-DD-070
+    description: >
+      The workflow files `_pipeline.yml`, `daily.yml`, and `publish-now.yml` must exist under `.github/workflows/`.
+  - id: REQ-DD-071
+    description: >
+      The `daily` and `publish-now` caller workflows must share the concurrency group `daily-publish` and must not cancel in-progress runs.
+  - id: REQ-DD-072
+    description: >
+      The jobs in both `daily` and `publish-now` must use the reusable pipeline `./.github/workflows/_pipeline.yml`.
+  - id: REQ-DD-073
+    description: >
+      The reusable pipeline workflow must support the `workflow_call` trigger.
+  - id: REQ-DD-074
+    description: >
+      The `daily` workflow must keep a schedule trigger with cron `0 7 * * *`.
+  - id: REQ-DD-075
+    description: >
+      The `daily` workflow job must not pass any `with` overrides.
+  - id: REQ-DD-076
+    description: >
+      The `publish-now` workflow must expose exactly `model` and `date` as `workflow_dispatch` inputs; `date` must be a string defaulting to empty, and `model` must be a choice defaulting to `random` with options `random` plus the sorted active models.
+  - id: REQ-DD-077
+    description: >
+      Both `daily` and `publish-now` caller workflows must set `permissions.contents` to `write` as the write ceiling.
+  - id: REQ-DD-078
+    description: >
+      None of the pipeline or caller workflows may contain `dry_run` or `force` guard flags.
+  - id: REQ-DD-079
+    description: >
+      The caller workflows must not inline `secrets.` references.

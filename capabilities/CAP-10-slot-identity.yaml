@@ -1,0 +1,30 @@
+name: Slot identity
+id: CAP-10
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_slots.py.
+requirements:
+  - id: REQ-DD-052
+    description: >
+      read_ledger must normalize slot-less ledger rows to slot 0 and ensure all live ledgers expose integer slots greater than or equal to 0.
+  - id: REQ-DD-053
+    description: >
+      read_ledger must reject invalid slot values (-1, non-integer strings, floats, and null) with ValueError.
+  - id: REQ-DD-054
+    description: >
+      entry_for_slot must return the exact ledger entry for a date and slot, treating slot-less rows as slot 0, and return None when no entry exists for that slot.
+  - id: REQ-DD-055
+    description: >
+      latest_slot must return the highest slot allocated for a date, and -1 when the date has no ledger entries.
+  - id: REQ-DD-056
+    description: >
+      The ledger API must not expose a date-only entry lookup; run identity requires both date and slot.
+  - id: REQ-DD-057
+    description: >
+      draw_prompt for a named existing slot must resume that slot's in-flight entry using its original source_file and report resumed as true.
+  - id: REQ-DD-058
+    description: >
+      draw_prompt for a new slot must select a source_file that has not been published in any date or slot, preserving global no-repeat.
+  - id: REQ-DD-059
+    description: >
+      post_path must be slot-aware: slot 0 maps to the base date post path and non-zero slots add a slot suffix.

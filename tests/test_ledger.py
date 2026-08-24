@@ -35,6 +35,7 @@ def repo(tmp_path):
     return tmp_path
 
 
+@pytest.mark.req("REQ-DD-022")
 def test_append_and_read(repo):
     ledger = repo / "state" / "published.jsonl"
     append_entry(
@@ -44,6 +45,7 @@ def test_append_and_read(repo):
     assert entries[0]["status"] == "drawn"
 
 
+@pytest.mark.req("REQ-DD-023")
 def test_invalid_status_rejected(repo):
     with pytest.raises(ValueError):
         append_entry(repo / "state" / "l.jsonl", {"date": "d", "status": "bogus"})
@@ -59,6 +61,7 @@ def test_entry_for_slot_latest_wins(repo):
     assert entry_for_slot(entries, "2026-08-20") is None
 
 
+@pytest.mark.req("REQ-DD-024")
 def test_record_transition_commits(repo):
     calls = []
 
@@ -75,6 +78,7 @@ def test_record_transition_commits(repo):
     assert any("git push" in c for c in joined)
 
 
+@pytest.mark.req("REQ-DD-025")
 def test_commit_failure_raises_before_return(repo):
     ledger = repo / "state" / "published.jsonl"
     with pytest.raises(LedgerCommitError):
@@ -86,6 +90,7 @@ def test_commit_failure_raises_before_return(repo):
         )
 
 
+@pytest.mark.req("REQ-DD-026")
 def test_draw_no_repeat(repo, tmp_path):
     corpus = tmp_path / "corpus.jsonl"
     rows = [{"prompt": f"p{i}", "source_file": f"s{i}"} for i in range(3)]
@@ -96,6 +101,7 @@ def test_draw_no_repeat(repo, tmp_path):
         assert drawn["source_file"] != "s0"
 
 
+@pytest.mark.req("REQ-DD-027")
 def test_draw_resumes_same_day(repo, tmp_path):
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text(json.dumps({"prompt": "p", "source_file": "s1"}))
@@ -114,6 +120,7 @@ def test_draw_resumes_same_day(repo, tmp_path):
     assert drawn["source_file"] == "sX"
 
 
+@pytest.mark.req("REQ-DD-028")
 def test_draw_terminal_day_reports_status(tmp_path):
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text(json.dumps({"prompt": "p", "source_file": "s1"}))
@@ -125,6 +132,7 @@ def test_draw_terminal_day_reports_status(tmp_path):
     assert drawn["status"] == "published"
 
 
+@pytest.mark.req("REQ-DD-029")
 def test_corpus_exhausted(tmp_path):
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text(json.dumps({"prompt": "p", "source_file": "s1"}))

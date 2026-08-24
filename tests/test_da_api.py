@@ -29,6 +29,7 @@ class FakeSession:
         return self.responses.pop(0)
 
 
+@pytest.mark.req("REQ-DD-001")
 def test_refresh_returns_rotated_token():
     s = FakeSession(
         [
@@ -46,12 +47,14 @@ def test_refresh_returns_rotated_token():
     assert kw["headers"]["User-Agent"]  # UA mandatory
 
 
+@pytest.mark.req("REQ-DD-002")
 def test_refresh_failure_raises():
     s = FakeSession([FakeResponse(401, {"error": "invalid_grant"})])
     with pytest.raises(da.DAApiError):
         da.refresh_token("cid", "sec", "RT", session=s)
 
 
+@pytest.mark.req("REQ-DD-003")
 def test_429_backoff_then_success(monkeypatch):
     monkeypatch.setattr(da.time, "sleep", lambda s: None)
     s = FakeSession(
@@ -61,6 +64,7 @@ def test_429_backoff_then_success(monkeypatch):
     assert len(s.calls) == 3
 
 
+@pytest.mark.req("REQ-DD-003")
 def test_429_exhaustion_raises(monkeypatch):
     monkeypatch.setattr(da.time, "sleep", lambda s: None)
     s = FakeSession([FakeResponse(429)] * da.MAX_RETRIES)
@@ -68,6 +72,7 @@ def test_429_exhaustion_raises(monkeypatch):
         da.placebo("AT", session=s)
 
 
+@pytest.mark.req("REQ-DD-004")
 def test_submit_shape(tmp_path):
     img = tmp_path / "x.png"
     img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
@@ -87,6 +92,7 @@ def test_submit_shape(tmp_path):
     assert kw["headers"]["Authorization"] == "Bearer AT"
 
 
+@pytest.mark.req("REQ-DD-005")
 def test_publish_shape_non_mature():
     s = FakeSession([FakeResponse(200, {"status": "success", "url": "https://da/x"})])
     result = da.stash_publish("AT", 42, mature=False, session=s)
@@ -98,6 +104,7 @@ def test_publish_shape_non_mature():
     assert "mature_level" not in data
 
 
+@pytest.mark.req("REQ-DD-005")
 def test_publish_shape_mature():
     s = FakeSession([FakeResponse(200, {"status": "success", "url": "u"})])
     da.stash_publish(
@@ -116,18 +123,21 @@ def test_publish_shape_mature():
     assert ("mature_classification[]", "sexual") in data
 
 
+@pytest.mark.req("REQ-DD-006")
 def test_error_code_9_idempotent():
     s = FakeSession([FakeResponse(400, {"error_code": 9, "url": "u"})])
     result = da.stash_publish("AT", 42, mature=False, session=s)
     assert result["already_published"] is True
 
 
+@pytest.mark.req("REQ-DD-006")
 def test_other_error_raises():
     s = FakeSession([FakeResponse(400, {"error_code": 1, "error": "tos"})])
     with pytest.raises(da.DAApiError):
         da.stash_publish("AT", 42, mature=False, session=s)
 
 
+@pytest.mark.req("REQ-DD-007")
 def test_persist_secret_via_stdin():
     runner = MagicMock(return_value=SimpleNamespace(returncode=0))
     da.persist_refresh_secret("NEW_RT", "o/r", "PAT", runner=runner)
@@ -138,6 +148,7 @@ def test_persist_secret_via_stdin():
     assert kwargs["env"]["GH_TOKEN"] == "PAT"
 
 
+@pytest.mark.req("REQ-DD-007")
 def test_persist_secret_failure_raises():
     runner = MagicMock(return_value=SimpleNamespace(returncode=1))
     with pytest.raises(da.TokenPersistError):

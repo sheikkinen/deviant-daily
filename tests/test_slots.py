@@ -33,6 +33,7 @@ def _corpus(tmp_path):
     return p
 
 
+@pytest.mark.req("REQ-DD-052")
 def test_read_ledger_normalizes_slotless_rows_to_zero(tmp_path):
     p = _write(
         tmp_path, [{"date": "2026-08-19", "status": "published", "source_file": "001"}]
@@ -40,6 +41,7 @@ def test_read_ledger_normalizes_slotless_rows_to_zero(tmp_path):
     assert read_ledger(p)[0]["slot"] == 0
 
 
+@pytest.mark.req("REQ-DD-052")
 def test_read_ledger_normalizes_the_live_committed_ledger():
     """AC-08 against the real file, not a fixture."""
     from pathlib import Path
@@ -51,12 +53,14 @@ def test_read_ledger_normalizes_the_live_committed_ledger():
 
 
 @pytest.mark.parametrize("bad", [-1, "0", 1.5, None])
+@pytest.mark.req("REQ-DD-053")
 def test_read_ledger_rejects_invalid_slot(tmp_path, bad):
     p = _write(tmp_path, [{"date": "2026-08-19", "status": "published", "slot": bad}])
     with pytest.raises(ValueError):
         read_ledger(p)
 
 
+@pytest.mark.req("REQ-DD-054")
 def test_entry_for_slot_isolates_slots(tmp_path):
     rows = [
         {"date": "2026-08-23", "status": "published", "source_file": "001"},
@@ -68,6 +72,7 @@ def test_entry_for_slot_isolates_slots(tmp_path):
     assert entry_for_slot(entries, "2026-08-23", 2) is None
 
 
+@pytest.mark.req("REQ-DD-055")
 def test_latest_slot(tmp_path):
     rows = [
         {"date": "2026-08-23", "status": "published", "source_file": "001"},
@@ -78,6 +83,7 @@ def test_latest_slot(tmp_path):
     assert latest_slot(entries, "2026-08-24") == -1
 
 
+@pytest.mark.req("REQ-DD-056")
 def test_entry_for_date_is_gone():
     """A date-only lookup surviving beside a slot-aware one is the defect."""
     from tools import ledger
@@ -85,6 +91,7 @@ def test_entry_for_date_is_gone():
     assert not hasattr(ledger, "entry_for_date")
 
 
+@pytest.mark.req("REQ-DD-057")
 def test_draw_prompt_resumes_the_named_slot(tmp_path):
     rows = [
         {
@@ -107,6 +114,7 @@ def test_draw_prompt_resumes_the_named_slot(tmp_path):
     assert drawn["source_file"] == "002"
 
 
+@pytest.mark.req("REQ-DD-058")
 def test_draw_prompt_new_slot_never_reuses_published_source(tmp_path):
     """AC-12: no-repeat is global across dates AND slots."""
     rows = [
@@ -127,5 +135,6 @@ def test_draw_prompt_new_slot_never_reuses_published_source(tmp_path):
         (2, "posts/2026-08-23-2.md"),
     ],
 )
+@pytest.mark.req("REQ-DD-059")
 def test_post_path_is_slot_aware(slot, expected):
     assert post_path("2026-08-23", slot) == expected

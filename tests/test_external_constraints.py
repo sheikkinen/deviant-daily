@@ -10,6 +10,8 @@
 
 import json
 
+import pytest
+
 from tools.corpus import draw_prompt, row_id
 from tools.gate import DA_TITLE_MAX, evaluate_gate
 
@@ -25,11 +27,13 @@ VALID = {
 }
 
 
+@pytest.mark.req("REQ-DD-012")
 def test_short_title_is_untouched():
     r = evaluate_gate({**VALID, "title": "Starlight's Reckoning"})
     assert r.post.title == "Starlight's Reckoning"
 
 
+@pytest.mark.req("REQ-DD-012")
 def test_overlong_title_is_trimmed_to_the_da_ceiling():
     long = "Nocturnal Liturgy of the Cathedral and Its Dark Communion of Shadows"
     assert len(long) > DA_TITLE_MAX
@@ -38,6 +42,7 @@ def test_overlong_title_is_trimmed_to_the_da_ceiling():
     assert len(r.post.title) <= DA_TITLE_MAX
 
 
+@pytest.mark.req("REQ-DD-012")
 def test_trim_lands_on_a_word_boundary():
     long = "Descent Through Shadow and Flame and Everlasting Midnight Silence"
     r = evaluate_gate({**VALID, "title": long})
@@ -46,6 +51,7 @@ def test_trim_lands_on_a_word_boundary():
     assert r.post.title.split()[-1] in long.split()
 
 
+@pytest.mark.req("REQ-DD-013")
 def test_unknown_source_files_get_distinct_ids():
     a = {"prompt": "a vampire in a cathedral", "source_file": "unknown"}
     b = {"prompt": "a robot in a saloon", "source_file": "unknown"}
@@ -53,12 +59,14 @@ def test_unknown_source_files_get_distinct_ids():
     assert row_id(a) == row_id(dict(a)), "must be deterministic"
 
 
+@pytest.mark.req("REQ-DD-013")
 def test_real_source_file_is_its_own_id():
     assert (
         row_id({"prompt": "p", "source_file": "00105-408526945"}) == "00105-408526945"
     )
 
 
+@pytest.mark.req("REQ-DD-013")
 def test_publishing_one_unknown_row_does_not_exclude_the_others(tmp_path):
     corpus = tmp_path / "corpus.jsonl"
     rows = [

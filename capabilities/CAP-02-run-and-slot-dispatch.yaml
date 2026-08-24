@@ -1,0 +1,18 @@
+name: Run and slot dispatch
+id: CAP-02
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_dispatch.py.
+requirements:
+  - id: REQ-DD-008
+    description: >
+      draw_step allocates slots per date sequentially: an empty ledger yields slot 0, and prior published or skipped slots cause the next run to be assigned the next slot, with slots continuing to climb rather than being treated as an idempotent no-op.
+  - id: REQ-DD-009
+    description: >
+      An in-flight submitted slot is resumed with the same slot and source_file rather than duplicated, and this resume causes no additional side effects.
+  - id: REQ-DD-010
+    description: >
+      The exposed step APIs do not accept dry_run/force controls: draw_step has neither dry_run nor force parameters, and publish_step and gate_step have no dry_run parameter.
+  - id: REQ-DD-011
+    description: >
+      generate_step model selection honours an explicitly provided model and, when no model is pinned, selects one of the active models.

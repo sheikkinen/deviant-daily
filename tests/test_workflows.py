@@ -28,10 +28,12 @@ def triggers(wf: dict) -> dict:
 
 
 @pytest.mark.parametrize("name", ["_pipeline.yml", "daily.yml", "publish-now.yml"])
+@pytest.mark.req("REQ-DD-070")
 def test_workflow_exists(name):
     assert (WF / name).is_file()
 
 
+@pytest.mark.req("REQ-DD-071")
 def test_both_callers_share_one_concurrency_group():
     daily, now = load("daily.yml"), load("publish-now.yml")
     assert (
@@ -41,27 +43,32 @@ def test_both_callers_share_one_concurrency_group():
     assert now["concurrency"]["cancel-in-progress"] is False
 
 
+@pytest.mark.req("REQ-DD-072")
 def test_both_callers_use_the_reusable_body():
     for name in ("daily.yml", "publish-now.yml"):
         jobs = load(name)["jobs"]
         assert [j["uses"] for j in jobs.values()] == [PIPELINE]
 
 
+@pytest.mark.req("REQ-DD-073")
 def test_pipeline_is_callable_only():
     assert "workflow_call" in triggers(load("_pipeline.yml"))
 
 
+@pytest.mark.req("REQ-DD-074")
 def test_daily_keeps_the_schedule():
     on = triggers(load("daily.yml"))
     assert on["schedule"] == [{"cron": "0 7 * * *"}]
 
 
+@pytest.mark.req("REQ-DD-075")
 def test_daily_passes_no_overrides():
     """AC-04: the scheduled path stays what it was."""
     job = next(iter(load("daily.yml")["jobs"].values()))
     assert not job.get("with"), "cron must not pin model/force/dry_run/date"
 
 
+@pytest.mark.req("REQ-DD-076")
 def test_publish_now_input_shape():
     inputs = triggers(load("publish-now.yml"))["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"model", "date"}, "no guard flags — running it publishes"
@@ -71,12 +78,14 @@ def test_publish_now_input_shape():
     assert inputs["model"]["options"] == ["random", *sorted(ACTIVE_MODELS)]
 
 
+@pytest.mark.req("REQ-DD-077")
 def test_callers_declare_the_write_ceiling():
     """A called workflow cannot escalate beyond its caller (startup_failure)."""
     for name in ("daily.yml", "publish-now.yml"):
         assert load(name)["permissions"]["contents"] == "write"
 
 
+@pytest.mark.req("REQ-DD-078")
 def test_no_guard_flags_survive_anywhere():
     """dry_run/force were paternalistic ceremony — they must not creep back."""
     for name in ("_pipeline.yml", "daily.yml", "publish-now.yml"):
@@ -84,6 +93,7 @@ def test_no_guard_flags_survive_anywhere():
         assert "dry_run" not in text and "force" not in text
 
 
+@pytest.mark.req("REQ-DD-079")
 def test_secrets_are_not_inlined_in_the_callers():
     for name in ("daily.yml", "publish-now.yml"):
         assert "secrets." not in (WF / name).read_text()

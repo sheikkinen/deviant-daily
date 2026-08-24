@@ -50,6 +50,7 @@ def ledger(monkeypatch, tmp_path):
     return write
 
 
+@pytest.mark.req("REQ-DD-008")
 def test_first_run_of_the_day_takes_slot_zero(ledger):
     ledger([])
     out = steps.draw_step(date="2026-08-23", runner=_ok_runner)
@@ -57,6 +58,7 @@ def test_first_run_of_the_day_takes_slot_zero(ledger):
     assert out["done"] is False
 
 
+@pytest.mark.req("REQ-DD-008")
 def test_a_run_after_a_published_slot_publishes_again(ledger):
     """If it runs, it publishes — no idempotent no-op for the operator."""
     ledger(
@@ -76,6 +78,7 @@ def test_a_run_after_a_published_slot_publishes_again(ledger):
     assert out["source_file"] != "001"
 
 
+@pytest.mark.req("REQ-DD-008")
 def test_a_run_after_a_skipped_slot_publishes_again(ledger):
     ledger(
         [
@@ -91,6 +94,7 @@ def test_a_run_after_a_skipped_slot_publishes_again(ledger):
     assert steps.draw_step(date="2026-08-23", runner=_ok_runner)["slot"] == 1
 
 
+@pytest.mark.req("REQ-DD-008")
 def test_slots_keep_climbing(ledger):
     ledger(
         [
@@ -111,6 +115,7 @@ def test_slots_keep_climbing(ledger):
     assert steps.draw_step(date="2026-08-23", runner=_ok_runner)["slot"] == 2
 
 
+@pytest.mark.req("REQ-DD-009")
 def test_an_in_flight_slot_is_resumed_not_duplicated(ledger):
     """The only diversion: its committed row may guard a live DA submit."""
     ledger(
@@ -130,25 +135,30 @@ def test_an_in_flight_slot_is_resumed_not_duplicated(ledger):
     assert out["done"] is False
 
 
+@pytest.mark.req("REQ-DD-010")
 def test_draw_step_takes_no_flags():
     params = set(inspect.signature(steps.draw_step).parameters)
     assert "dry_run" not in params and "force" not in params
 
 
+@pytest.mark.req("REQ-DD-010")
 def test_publish_step_takes_no_dry_run():
     assert "dry_run" not in inspect.signature(steps.publish_step).parameters
 
 
+@pytest.mark.req("REQ-DD-010")
 def test_gate_step_takes_no_dry_run():
     assert "dry_run" not in inspect.signature(steps.gate_step).parameters
 
 
+@pytest.mark.req("REQ-DD-011")
 def test_generate_step_honours_explicit_model(monkeypatch):
     monkeypatch.setattr(steps, "generate_image", lambda *a, **k: "/tmp/x.png")
     out = steps.generate_step("p", "2026-08-23", model="nano-banana-2")
     assert out["model_name"] == "nano-banana-2"
 
 
+@pytest.mark.req("REQ-DD-011")
 def test_generate_step_random_when_unpinned(monkeypatch):
     from tools.roster import ACTIVE_MODELS
 

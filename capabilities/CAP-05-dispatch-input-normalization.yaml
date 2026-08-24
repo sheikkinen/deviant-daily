@@ -1,0 +1,15 @@
+name: Dispatch input normalization
+id: CAP-05
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_inputs.py.
+requirements:
+  - id: REQ-DD-019
+    description: >
+      parse_date must return the current UTC date in ISO format when input is empty, accept valid ISO date strings, and reject non-ISO strings by raising ValueError.
+  - id: REQ-DD-020
+    description: >
+      parse_slot must normalize empty input to 0, accept non-negative integer-like values, and reject negative, non-integral, nonnumeric, or None inputs by raising ValueError or TypeError.
+  - id: REQ-DD-021
+    description: >
+      parse_model must treat empty or case-insensitive 'random' input as unpinned, accept every active model name from ACTIVE_MODELS unchanged, and raise RosterError for unknown model names.

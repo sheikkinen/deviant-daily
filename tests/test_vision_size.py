@@ -33,6 +33,7 @@ def _png(width: int, height: int, noisy: bool = False) -> bytes:
     return buf.getvalue()
 
 
+@pytest.mark.req("REQ-DD-065")
 def test_small_image_is_still_re_encoded():
     """No passthrough branch: every payload goes through the downscaler."""
     data, media_type = prepare_for_vision(_png(800, 450))
@@ -40,6 +41,7 @@ def test_small_image_is_still_re_encoded():
     assert data[:3] == b"\xff\xd8\xff"
 
 
+@pytest.mark.req("REQ-DD-066")
 def test_oversized_payload_is_shrunk_below_the_ceiling():
     original = _png(2000, 1500, noisy=True)
     assert len(base64.b64encode(original)) > MAX_B64_BYTES
@@ -48,6 +50,7 @@ def test_oversized_payload_is_shrunk_below_the_ceiling():
     assert media_type in ("image/png", "image/jpeg")
 
 
+@pytest.mark.req("REQ-DD-067")
 def test_shrinking_preserves_aspect_ratio_and_caps_the_long_edge():
     original = _png(2000, 1500, noisy=True)
     data, _ = prepare_for_vision(original)
@@ -56,6 +59,7 @@ def test_shrinking_preserves_aspect_ratio_and_caps_the_long_edge():
     assert shrunk.width / shrunk.height == pytest.approx(2000 / 1500, rel=0.02)
 
 
+@pytest.mark.req("REQ-DD-068")
 def test_oversized_dimensions_shrink_even_when_bytes_fit():
     """The edge cap is independent of the byte cap — a flat 4000px image
     compresses tiny, and passing it full-size wastes upload for nothing."""
@@ -65,6 +69,7 @@ def test_oversized_dimensions_shrink_even_when_bytes_fit():
     assert max(Image.open(io.BytesIO(data)).size) <= MAX_EDGE
 
 
+@pytest.mark.req("REQ-DD-069")
 def test_the_original_file_is_never_modified(tmp_path):
     """DA publishes the full-size artwork; only the vision copy shrinks."""
     path = tmp_path / "art.png"

@@ -1,0 +1,21 @@
+name: Publish step ordering
+id: CAP-11
+status: active
+description: >
+  Behavioural guarantees witnessed by tests/test_steps.py.
+requirements:
+  - id: REQ-DD-060
+    description: >
+      publish_step must persist token rotation before any DA side effect; if that persistence fails, it must raise TokenPersistError before any submit or publish call.
+  - id: REQ-DD-061
+    description: >
+      publish_step must commit the submitted ledger transition before calling submit; if that commit fails, it must raise LedgerCommitError and block the submit call.
+  - id: REQ-DD-062
+    description: >
+      publish_step must commit the published ledger transition after publishing; if that commit fails, it must raise RecoveryRequired containing the submitted item id and the published URL.
+  - id: REQ-DD-063
+    description: >
+      publish_step must write the post markdown at posts/<date>.md containing the title and prompt, must not write an image file even when an image is supplied, and must return the published URL.
+  - id: REQ-DD-064
+    description: >
+      gate_step must commit a skipped ledger entry with a reason when it does not pass the gate, and only then return publish=False.
