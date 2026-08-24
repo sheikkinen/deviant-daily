@@ -5,24 +5,31 @@ anthropic vision model with structured output. The instruction text
 lives in prompts/describe_post.yaml (committed style artifact); the
 result is re-validated deterministically by tools.gate.
 
-The payload is normalized at this boundary: providers cap the base64
-image and 2K/2MP PNGs from the roster exceed it (run 32623570851 died
-at 10,896,644 > 10,485,760 bytes). Only the copy sent to the model is
-shrunk — DeviantArt still receives the full-size artwork.
+The payload is normalized at this boundary twice over:
+
+- size: providers cap the base64 image and 2K/2MP PNGs from the roster
+  exceed it (run 32623570851 died at 10,896,644 > 10,485,760 bytes).
+  Only the copy sent to the model is shrunk — DeviantArt still receives
+  the full-size artwork.
+- shape: structured output is a request, not a guarantee. Run
+  32688775537 returned `paragraphs` as a JSON-encoded string. Capture
+  permissively, repair narrowly, then validate strictly (FR-873).
 """
 
 from __future__ import annotations
 
 import base64
 import io
+import json
 import logging
 from pathlib import Path
 
 import yaml
 from langchain_core.messages import HumanMessage
+from pydantic import BaseModel, Field
 from yamlgraph.utils.llm_factory import create_llm
 
-from tools.gate import PostDescription
+from tools.gate import MatureClassification, PostDescription
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +40,68 @@ MAX_EDGE = 1568
 # Provider ceiling is 10 MB of base64; leave headroom for the text parts.
 MAX_B64_BYTES = 9 * 1024 * 1024
 JPEG_QUALITIES = (85, 70, 55)
+
+# The only fields a provider is permitted to mis-serialize as a JSON string.
+REPAIRABLE_FIELDS = ("paragraphs", "tags", "mature_classification")
+
+
+class InvalidDescription(Exception):
+    """Schema-shaped, unrecoverable description — never a transport error."""
+
+    def __init__(self, field: str, reason: str) -> None:
+        super().__init__(reason)
+        self.field = field
+        self.reason = reason
+
+
+class CaptureDescription(BaseModel):
+    """Permissive on exactly the axis providers lie about; strict elsewhere."""
+
+    title: str
+    paragraphs: list[str] | str
+    quote: str | None = None
+    tags: list[str] | str
+    confidence: str
+    mature: bool
+    mature_level: str | None = None
+    mature_classification: list[MatureClassification] | str = Field(
+        default_factory=list
+    )
+
+
+class DescribeResult(BaseModel):
+    """Typed outcome the gate consumes; `valid=False` becomes a skip."""
+
+    valid: bool
+    reason: str | None = None
+    field: str | None = None
+    payload: dict | None = None
+
+
+def _repair_list_field(field: str, value):
+    """Providers sometimes serialize a list as a JSON string (run 32688775537)."""
+    if not isinstance(value, str):
+        return value
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as e:
+        raise InvalidDescription(
+            field=field, reason=f"schema: {field} is not valid JSON"
+        ) from e
+    if not isinstance(parsed, list) or not all(isinstance(x, str) for x in parsed):
+        raise InvalidDescription(
+            field=field, reason=f"schema: {field} is not a list of strings"
+        )
+    logger.info("vision: repaired %s from JSON string", field)
+    return parsed
+
+
+def repair_payload(raw: dict) -> dict:
+    """Repair only the authorized fields; every other value is untouched."""
+    return {
+        k: (_repair_list_field(k, v) if k in REPAIRABLE_FIELDS else v)
+        for k, v in raw.items()
+    }
 
 
 def detect_media_type(data: bytes) -> str:
@@ -89,7 +158,11 @@ def prepare_for_vision(data: bytes) -> tuple[bytes, str]:
 
 
 def describe_image(image_path: str | Path, prompt_text: str, llm=None) -> dict:
-    """Return raw dict for the gate; llm injectable for tests."""
+    """Capture permissively, repair narrowly, validate strictly (FR-873).
+
+    Raises InvalidDescription for schema-shaped failures; every other
+    error (missing key, network, undecodable image) propagates untouched.
+    """
     img_bytes, media_type = prepare_for_vision(Path(image_path).read_bytes())
     img_b64 = base64.b64encode(img_bytes).decode()
     instruction = load_instruction().replace("{original_prompt}", prompt_text)
@@ -103,6 +176,7 @@ def describe_image(image_path: str | Path, prompt_text: str, llm=None) -> dict:
         ]
     )
     model = llm or create_llm(provider="anthropic")
-    structured = model.with_structured_output(PostDescription)
-    result = structured.invoke([message])
-    return result.model_dump()
+    structured = model.with_structured_output(CaptureDescription)
+    captured = structured.invoke([message])
+    raw = captured if isinstance(captured, dict) else captured.model_dump()
+    return PostDescription.model_validate(repair_payload(raw)).model_dump()

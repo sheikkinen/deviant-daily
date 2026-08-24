@@ -20,6 +20,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from tools import da_api
 from tools.corpus import draw_prompt
 from tools.gate import PostDescription, evaluate_gate
@@ -36,7 +38,7 @@ from tools.ledger import (
 )
 from tools.post import post_path, render_artist_comments, render_post_md
 from tools.roster import choose_model, validate_roster
-from tools.vision import describe_image
+from tools.vision import DescribeResult, InvalidDescription, describe_image
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +103,15 @@ def generate_step(prompt: str, date: str, model: str = "") -> dict:
 
 
 def describe_step(image_path: str, prompt: str) -> dict:
-    return describe_image(image_path, prompt)
+    """Schema-shaped failures become a typed value the gate skips (FR-873);
+    transport failures propagate and stay red."""
+    try:
+        return describe_image(image_path, prompt)
+    except (InvalidDescription, ValidationError) as e:
+        reason = getattr(e, "reason", None) or f"schema: {e.errors()[0]['msg']}"
+        field = getattr(e, "field", None) or str(e.errors()[0]["loc"][0])
+        logger.info("describe: unusable description (%s)", reason)
+        return DescribeResult(valid=False, reason=reason, field=field).model_dump()
 
 
 def gate_step(

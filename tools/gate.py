@@ -85,8 +85,20 @@ def _escalate_to_mature(post: PostDescription) -> PostDescription:
     return post.model_copy(update={"mature": True, "mature_level": "moderate"})
 
 
-def evaluate_gate(raw: dict) -> GateResult:
+def _invalid_reason(raw) -> str | None:
+    """A typed invalid-description from the vision boundary (FR-873)."""
+    if isinstance(raw, dict):
+        return raw["reason"] if raw.get("valid") is False else None
+    return (
+        getattr(raw, "reason", None) if getattr(raw, "valid", None) is False else None
+    )
+
+
+def evaluate_gate(raw) -> GateResult:
     """Mechanical gate: schema-validate, then confidence policy."""
+    invalid = _invalid_reason(raw)
+    if invalid:
+        return GateResult(publish=False, reason=invalid)
     try:
         post = PostDescription.model_validate(raw)
     except ValidationError as e:
