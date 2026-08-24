@@ -1,0 +1,45 @@
+/Users/sami.j.p.heikkinen/src/deviant-daily/.venv/lib/python3.11/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /Users/runner/work/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)
+  cpu = _conversion_method_template(device=torch.device("cpu"))
+{"config": {"git_sha": "830cccafe3116973dbabdefef9f6e61bb451aa96", "seed": 42, "device": "mps", "n_params": 3299328, "vocab_size": 145, "block": 256, "batch": 32, "steps": 5000, "lr": 0.0003, "layers": 4, "heads": 4, "embd": 256, "train_chars": 2346798, "val_chars": 127465}}
+{"step": 0, "val_loss": 5.1227}
+{"step": 250, "train_loss": 2.3395, "val_loss": 2.3446, "elapsed_s": 38.8}
+{"sample_rejected": "shape:too_long"}
+{"step": 500, "train_loss": 2.1533, "val_loss": 2.1246, "elapsed_s": 88.4}
+{"sample_rejected": "shape:too_long"}
+{"step": 750, "train_loss": 1.9015, "val_loss": 1.8447, "elapsed_s": 129.8}
+{"sample": "(with in (colen wher oor angenk flistaing around ker as and reaved wather chawosftion a chadoscurosuse. bone and trat sillle rongeting whith wilverss gepemal tink a leces swing with blighting a ins flung wandowing bear beazing a viperation, dema vition, drowed the thens, diriguption, smures extalicss vouptione bermant punting ante visalixtion, sura, pairl pasted antwil of rovine mine , figertion, eyeto wothe Vaned pas spenstratic , senite she bin hand pin sping win gielt AK, ston cattess, anden and forom hin outhe in pof pond arnd, lep graptandsure cinto beolots, scored, eandern, peratic (secce (bagral garr sea re, mand stranded cloque_diny, sunere_erpexpure_al, strearre_gixy,"}
+{"step": 1000, "train_loss": 1.5975, "val_loss": 1.614, "elapsed_s": 169.4}
+{"sample_rejected": "shape:too_short"}
+{"step": 1250, "train_loss": 1.5107, "val_loss": 1.4704, "elapsed_s": 202.6}
+{"sample_rejected": "shape:too_long"}
+{"step": 1500, "train_loss": 1.2625, "val_loss": 1.3747, "elapsed_s": 244.0}
+{"sample": "Med fire focus, emotional lique figure, wearing art, (Purgentholy breast, , crimmaining ethereal pasting, dramatic partic chiaroscuro baroque like and skin, cownelding with heaven and othing scene withs gaze: Alazing chiarcoscuro and sharmer, mystious rof a surt ain theroughics, silvery the wother, his green flowing, with a sancioust artwork, silorate celestive throusho athlustionatoral ganel moutis atmospheres and thim streees, and fleatalins atherous ambielate soft illust, heronic cinete musith effects., sinerious arousforbiddent the textureation, forid magins vimmental limance bearing horror meetals and beautifus, bondreast rooberses illuments choloaria styles emmVinginates background wrownders."}
+{"step": 1750, "train_loss": 1.3025, "val_loss": 1.3043, "elapsed_s": 283.6}
+{"sample": "(cavident plassion in lighting, with ethereal pose, anthro, creating vines, flirt, intense nultien collassicape, masterpiece, head, rating_explicit, score_9, score_8_up, score_7_up, score_6_up, BREAK,"}
+{"step": 2000, "train_loss": 1.2713, "val_loss": 1.2678, "elapsed_s": 317.8}
+{"sample": "(beautifully over girl with white deep in a notitic filtering commyth setting cover in sand geometric face in the viewer data serene of saperen display her low landscape with a mysterious and dramatic leaming tree. The expression against with castic scheeme face view, and grace in in a beath the soft fool beautiful fiery surroundir and masterping shadows spread sensualing with the shouldent, kiss blur against thick inspired lines, an charcoalic to aillurate lighting, grim scales around moonlic graveyard, dingotional portrayingly waterhy mesmerizing with a devirt-tears and kning, radiantic lighting, dark intimate is and the her painting with autumnoused mist rating_explicit, score_9, score_8_up, score_7_up, score_6_up, BREAK,"}
+{"step": 2250, "train_loss": 1.1719, "val_loss": 1.2262, "elapsed_s": 358.2}
+{"sample_rejected": "shape:too_long"}
+{"step": 2500, "train_loss": 1.0964, "val_loss": 1.1958, "elapsed_s": 401.5}
+{"sample_rejected": "shape:too_long"}
+{"step": 2750, "train_loss": 1.1574, "val_loss": 1.1456, "elapsed_s": 441.9}
+{"sample": "Style succubus with creating fantasy like on hair, madness, captured black op painting, secret anothed by creating conic pose, ass a clutchion bells on the mootion, emphasizing and eyes colord with flowers against him, romantic art style, divine distens the wild, storm chinnist branch of a golden hour and gears with socking anthro that battlefies yet golden with through tones. Her flowers sun out, dressoldism, contrast setting, dreadity, submischievoked, bold-skliness as reflecting on a luminous of genithing black three-shadows manipm with filled with digital atmosphere, dynamic chiaroscuro, detailed lighting romanticism portrait, score_9, score_8_up, score_7_up, score_6_up, BREAK,"}
+{"step": 3000, "train_loss": 1.1407, "val_loss": 1.1359, "elapsed_s": 478.6}
+{"sample": "fat, a impressionist, artistic, steam stylized skin contrast, golden hour rackling atmosphere, sitting wrick eyes and intense necromance moonlight, warm fetite figure vulnerability"}
+{"step": 3250, "train_loss": 1.0791, "val_loss": 1.1092, "elapsed_s": 511.2}
+{"sample": "A surreal female woman with a ghost artistic, her fleckering shadows adorned wings, and ductival female figure belly with metal, sensual expression, playful palmondably beauty, planting screens, Erotic, emotional, dynamic action, chiaroscuro, detailed reflections"}
+{"step": 3500, "train_loss": 1.0201, "val_loss": 1.101, "elapsed_s": 544.0}
+{"sample_rejected": "shape:too_short"}
+{"step": 3750, "train_loss": 1.0379, "val_loss": 1.0722, "elapsed_s": 575.1}
+{"sample": "A botters and determination style, metal culler and secrets traing, wearing crystalling playful with a teasely, red lips the setting of delicate against a complement sculpted of a golden light and dative enhances the angel with misticulous and elements. The desert green layers of mounth, anticippis on chamber, slaw grin, night, painting of lover angel man in a mesmerging from the mirror), (seductive feathers), machinelatically in the endrils of covered and fantasy combinent framed rim lighting hand creates a captivating realism and musical demon with impossible and defying powerful details, masterpiece focus, dramatic chiaroscuro environment"}
+{"step": 4000, "train_loss": 0.9783, "val_loss": 1.0571, "elapsed_s": 610.6}
+{"sample": "surreal faces, the kown, playful background, reaching out of the past, thick air, tangled skin, one arched background, bargon leather_chamber, vibrant_clother, rating_explict, horror, score_9, score_8_up, score_7_up, score_6_up, BREAK,"}
+{"step": 4250, "train_loss": 1.0058, "val_loss": 1.0369, "elapsed_s": 644.7}
+{"sample_rejected": "novelty:shared_8gram"}
+{"step": 4500, "train_loss": 0.9714, "val_loss": 1.0396, "elapsed_s": 680.2}
+{"sample": "Expressiveh, Expressiveh, with thorned mood, expressive, bondage, female vampire lighting, anthro mischievous, enigmatic expression, ambient light composition, crossed black-tiliament lighting, half-terhouse, hands merged in landscape painting by detailed, ethereal light, contrast survhed in floating style, highly, small breasts and a poignant shadows, divine light roses, erotic pose, dynamic action, detailed lighting, chiaroscuro, renaissance, dynamic action, detailed lighting, dinnaviliant technique, perfect ass, hand long brace, erotica, dynamic action,"}
+{"step": 4750, "train_loss": 0.9301, "val_loss": 1.0433, "elapsed_s": 717.7}
+{"sample": "A releasive skeleton girl on showing down her form and album and fur. Minimalistic atmosphere, and golden hour backlighting whimsical at a collection screens, while a woman with a fantasy adventure in adventure allure. The scene is a mid-magic powerful exaggerated backdrop and modern, ghostly fractil and thighs, soft diffused lighting with the subtle glow of and blood-stained amber caressing, tilted backlighting with through and her eyes, dramatic shadows. The complex desire their textures, manorphomore photography, highly detailed hair arms, red equality of Ross. rating_explicit, score_9, score_8_up, score_7_up, score_6_up, BREAK,"}
+{"step": 5000, "train_loss": 0.9015, "val_loss": 0.9987, "elapsed_s": 756.3}
+{"sample": "a soft portrait of a fause Fraze Metamorphorealist Berrean and Hisae, breath seduction in feedon a moment of erotic tentacles with luminescent around her bodies and (digital armor), golden hour lighting, one gigantic flowing and clouds, and jacketic weathered head or pure style with half body shadow, weaponry beauty with soft boundage copper visible and forebolly colors, crowned molten skin, eyes glowing with a cityane weight of face cinematic shadowed velvet and gold leaning mists, evoking animal forest, serene exploing pierce nature enchantronic style with and nebula-lit firele cosmic training trendleling seduction of evil forest, dark design, wild-and chainmail and lights, dynamic action, chiaroscuro, detailed reflections"}
+{"final": {"initial_val_loss": 5.1227, "final_val_loss": 1.0175, "wall_clock_s": 764.7, "ckpt": "training/ckpt/model.pt"}}
