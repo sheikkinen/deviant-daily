@@ -1,0 +1,20 @@
+{
+  "<tag>": {
+    "p10": 0.677,
+    "p90": 1.3828,
+    "n_docs": 121
+  },
+  "<prose>": {
+    "p10": 0.7548,
+    "p90": 1.4345,
+    "n_docs": 173
+  },
+  "provenance": {
+    "ckpt_sha": "cd0fb5c2f171",
+    "corpus_sha": "5907e2848ca3",
+    "git_sha": "ca23ed3286cd125e8dce724c1a0f4c32d0ccdaa0",
+    "val_path": "training/data/val.txt",
+    "block_size": 256,
+    "command": "/Users/sami.j.p.heikkinen/src/deviant-daily/training/score.py --calibrate"
+  }
+}

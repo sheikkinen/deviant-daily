@@ -8,5 +8,6 @@ prompts/corpus.sample.txt
 .venv/
 logs/
 outputs/
-training/ckpt/
+training/ckpt/*
+!training/ckpt/calibration.json
 training/data/
