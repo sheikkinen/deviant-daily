@@ -34,6 +34,7 @@ def main() -> None:
     ap.add_argument("--temp", type=float, default=0.8)
     ap.add_argument("--top-k", type=int, default=40)
     ap.add_argument("--cond", choices=["tag", "prose"], default="prose")
+    ap.add_argument("--start", default="", help="seed text the model continues from")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out", type=Path, default=None, help="markdown sample sheet")
     args = ap.parse_args()
@@ -47,14 +48,20 @@ def main() -> None:
     ]
     boundary = Boundary(corpus_prompts)
 
+    unknown = sorted(set(args.start) - set(tokenizer.chars))
+    if unknown:
+        raise SystemExit(f"--start contains chars outside model vocab: {unknown}")
+    prefix = f"<{args.cond}>{args.start}"
+
     passed: list[str] = []
     verdicts: Counter[str] = Counter()
     attempts = 0
     while len(passed) < args.n and attempts < args.n * 10:
         attempts += 1
         text, ended = model.sample(
-            tokenizer, f"<{args.cond}>", temperature=args.temp, top_k=args.top_k
+            tokenizer, prefix, temperature=args.temp, top_k=args.top_k
         )
+        text = f"{args.start}{text}" if args.start else text
         res = boundary.check(text, ended=ended)
         verdicts[res.verdict] += 1
         if res.verdict == "pass":
