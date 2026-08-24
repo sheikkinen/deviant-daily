@@ -8,3 +8,5 @@ prompts/corpus.sample.txt
 .venv/
 logs/
 outputs/
+training/ckpt/
+training/data/
