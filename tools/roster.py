@@ -4,6 +4,10 @@ Three ACTIVE models. Grok enabled 2026-08-19: operator supplied the
 slug https://replicate.com/xai/grok-imagine-image-2 (the earlier
 "no Replicate grok" retirement was a search-API false negative —
 GET /models/xai/grok-imagine-image-2 returns the schema).
+2026-08-23: flux-ultra (flux-1.1-pro-ultra) retired as superseded;
+flux-2-flex and nano-banana-2 added, both slugs verified by direct
+GET /models/<owner>/<name> and their params taken from the returned
+input schema enums.
 Zero active models is a hard failure BEFORE any corpus draw or DA
 side effect — never a green skip.
 """
@@ -25,9 +29,21 @@ ACTIVE_MODELS: dict[str, dict] = {
             "num_inference_steps": 8,
         },
     },
-    "flux-ultra": {
-        "slug": "black-forest-labs/flux-1.1-pro-ultra",
-        "params": {"aspect_ratio": "16:9"},
+    "flux-2-flex": {
+        "slug": "black-forest-labs/flux-2-flex",
+        "params": {
+            "aspect_ratio": "16:9",
+            "resolution": "2 MP",
+            "output_format": "png",
+        },
+    },
+    "nano-banana-2": {
+        "slug": "google/nano-banana-2",
+        "params": {
+            "aspect_ratio": "16:9",
+            "resolution": "2K",
+            "output_format": "png",
+        },
     },
     "grok": {
         "slug": "xai/grok-imagine-image-2",
@@ -60,7 +76,12 @@ def validate_roster(unavailable: list[str] | None = None) -> dict[str, dict]:
     return usable
 
 
-def choose_model(rng: random.Random | None = None) -> tuple[str, dict]:
+def choose_model(rng: random.Random | None = None, name: str = "") -> tuple[str, dict]:
+    """Random over the roster, or exactly `name` when pinned (FR-862)."""
     usable = validate_roster()
-    name = (rng or random).choice(sorted(usable))
-    return name, usable[name]
+    if name:
+        if name not in usable:
+            raise RosterError(f"model {name!r} not in roster {sorted(usable)}")
+        return name, usable[name]
+    chosen = (rng or random).choice(sorted(usable))
+    return chosen, usable[chosen]

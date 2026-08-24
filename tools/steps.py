@@ -1,7 +1,13 @@
 """Graph node step functions (FR-826 R-1: yamlgraph orchestrates, these
 are the side-effect tools it calls).
 
+If the pipeline runs, it publishes. There is no dry-run and no force:
+running it IS the intent. The one diversion is an in-flight slot, which
+is resumed rather than duplicated — its committed row may already guard
+a DA call in flight.
+
 Ordering contracts enforced here:
+- dispatch inputs normalized at entry
 - ledger transition committed BEFORE the next side effect (R-3)
 - rotated refresh token persisted BEFORE any DA submit/publish (AC-08)
 - post-publish commit failure -> RecoveryRequired, visibly red (R-3)
@@ -12,21 +18,23 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-from datetime import UTC, datetime
 from pathlib import Path
 
 from tools import da_api
 from tools.corpus import draw_prompt
 from tools.gate import PostDescription, evaluate_gate
 from tools.generate import generate_image
+from tools.inputs import parse_date, parse_model, parse_slot
 from tools.ledger import (
     TERMINAL,
     LedgerCommitError,
     RecoveryRequired,
+    entry_for_slot,
+    latest_slot,
     read_ledger,
     record_transition,
 )
-from tools.post import render_artist_comments, render_post_md
+from tools.post import post_path, render_artist_comments, render_post_md
 from tools.roster import choose_model, validate_roster
 from tools.vision import describe_image
 
@@ -38,38 +46,56 @@ CORPUS = REPO_DIR / "prompts" / "corpus.jsonl"
 DA_REPO = "sheikkinen/deviant-daily"
 
 
-def _today() -> str:
-    return datetime.now(UTC).date().isoformat()
+def _resumed(existing: dict, date: str, slot: int) -> dict:
+    return {
+        "prompt": existing.get("prompt", ""),
+        "source_file": existing.get("source_file", ""),
+        "resumed": True,
+        "status": existing["status"],
+        "date": date,
+        "slot": slot,
+        "done": False,
+    }
 
 
 def draw_step(date: str = "", runner=subprocess.run) -> dict:
-    """Roster check first (R-4: fail before any draw), then draw + commit."""
+    """Roster check first (R-4: fail before any draw), then take the next
+    slot and draw. A terminal slot is not a stop sign — it just means the
+    next run gets the next slot.
+    """
     validate_roster()
-    date = date or _today()
+    date = parse_date(date)
+
     entries = read_ledger(LEDGER)
-    drawn = draw_prompt(CORPUS, entries, date)
-    if drawn["resumed"]:
-        if drawn["status"] in TERMINAL:
-            logger.info("draw: %s already %s — idempotent exit", date, drawn["status"])
-            return {**drawn, "date": date, "done": True}
-        logger.info("draw: resuming %s from status=%s", date, drawn["status"])
-        return {**drawn, "date": date, "done": False}
+    slot = latest_slot(entries, date)
+    existing = entry_for_slot(entries, date, slot) if slot >= 0 else None
+
+    if existing and existing["status"] not in TERMINAL:
+        logger.info(
+            "draw: resuming %s#%d from status=%s", date, slot, existing["status"]
+        )
+        return _resumed(existing, date, slot)
+
+    slot = slot + 1 if existing else 0
+    drawn = draw_prompt(CORPUS, entries, date, slot)
+    logger.info("draw: %s#%d from %s", date, slot, drawn["source_file"])
     record_transition(
         REPO_DIR,
         LEDGER,
         {
             "date": date,
+            "slot": slot,
             "status": "drawn",
             "prompt": drawn["prompt"],
             "source_file": drawn["source_file"],
         },
         runner=runner,
     )
-    return {**drawn, "date": date, "done": False}
+    return {**drawn, "date": date, "slot": slot, "done": False}
 
 
-def generate_step(prompt: str, date: str) -> dict:
-    model_name, config = choose_model()
+def generate_step(prompt: str, date: str, model: str = "") -> dict:
+    model_name, config = choose_model(name=parse_model(model))
     image_path = generate_image(prompt, config, f"/tmp/deviant-daily-{date}.png")
     return {"model_name": model_name, "image_path": image_path}
 
@@ -79,9 +105,15 @@ def describe_step(image_path: str, prompt: str) -> dict:
 
 
 def gate_step(
-    description: dict, date: str, prompt: str, source_file: str, runner=subprocess.run
+    description: dict,
+    date: str,
+    prompt: str,
+    source_file: str,
+    slot: str | int = 0,
+    runner=subprocess.run,
 ) -> dict:
     """Deterministic gate; a skip is committed BEFORE the green exit (R-5)."""
+    slot = parse_slot(slot)
     result = evaluate_gate(description)
     if not result.publish:
         record_transition(
@@ -89,6 +121,7 @@ def gate_step(
             LEDGER,
             {
                 "date": date,
+                "slot": slot,
                 "status": "skipped",
                 "reason": result.reason,
                 "prompt": prompt,
@@ -96,7 +129,7 @@ def gate_step(
             },
             runner=runner,
         )
-        logger.info("gate: SKIP (%s) — recorded and committed", result.reason)
+        logger.info("gate: SKIP (%s)", result.reason)
         return {"publish": False, "reason": result.reason}
     return {"publish": True, "post": result.post.model_dump()}
 
@@ -108,12 +141,14 @@ def publish_step(
     prompt: str,
     source_file: str,
     model_name: str,
+    slot: str | int = 0,
     runner=subprocess.run,
     session=None,
 ) -> dict:
     """FR-822 flow with rotation-persist-first and committed transitions."""
     import requests
 
+    slot = parse_slot(slot)
     session = session or requests
     env = {
         k: os.environ.get(k, "")
@@ -142,6 +177,7 @@ def publish_step(
         LEDGER,
         {
             "date": date,
+            "slot": slot,
             "status": "submitted",
             "prompt": prompt,
             "source_file": source_file,
@@ -167,11 +203,12 @@ def publish_step(
     url = result.get("url")
 
     # 4. post MD + 'published' in one commit; failure here = RECOVERY_REQUIRED
-    post_path = REPO_DIR / "posts" / f"{date}.md"
-    post_path.parent.mkdir(exist_ok=True)
-    post_path.write_text(
+    rel_post = post_path(date, slot)
+    target = REPO_DIR / rel_post
+    target.parent.mkdir(exist_ok=True)
+    target.write_text(
         render_post_md(
-            PostDescription.model_validate(post), prompt, model_name, url, date
+            PostDescription.model_validate(post), prompt, model_name, url, date, slot
         )
     )
     try:
@@ -180,6 +217,7 @@ def publish_step(
             LEDGER,
             {
                 "date": date,
+                "slot": slot,
                 "status": "published",
                 "prompt": prompt,
                 "source_file": source_file,
@@ -187,7 +225,7 @@ def publish_step(
                 "url": url,
             },
             runner=runner,
-            extra_paths=[f"posts/{date}.md"],
+            extra_paths=[rel_post],
         )
     except LedgerCommitError as e:
         raise RecoveryRequired(

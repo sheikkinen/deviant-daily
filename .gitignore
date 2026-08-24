@@ -6,3 +6,5 @@ __pycache__/
 !fixture*.png
 prompts/corpus.sample.txt
 .venv/
+logs/
+outputs/

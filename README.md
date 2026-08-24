@@ -7,7 +7,10 @@ Autonomous daily art publisher. Every morning a GitHub Actions run:
 2. **generates** an image on Replicate (frozen model roster)
 3. **describes** it in the sheikkinen mythic voice
    ([STYLE-CONTRACT.md](STYLE-CONTRACT.md), vision LLM)
-4. **gates** the result through a deterministic typed schema
+4. **gates** the result through a deterministic typed schema — only
+   `confidence: low` blocks; `medium` publishes escalated to mature
+   (the model hedges on mature content, and a hedge is not a reason to
+   throw the day away)
 5. **publishes** to [DeviantArt](https://www.deviantart.com/sheikkinen)
    via the OAuth2 API (`is_ai_generated=true`, `noai=true`)
 6. **commits** the post record back to this repo
@@ -45,8 +48,58 @@ exits idempotently. A post-publish commit failure fails the run as
 | Model | Slug | Status |
 |---|---|---|
 | z-image | `prunaai/z-image-turbo` | active |
-| flux-ultra | `black-forest-labs/flux-1.1-pro-ultra` | active |
-| grok | xai/grok-imagine-image-2 | 16:9, 2k, quality medium |
+| flux-2-flex | `black-forest-labs/flux-2-flex` | active — 16:9, 2 MP, png |
+| nano-banana-2 | `google/nano-banana-2` | active — 16:9, 2K, png |
+| grok | `xai/grok-imagine-image-2` | active — 16:9, 2k, quality medium |
+| flux-ultra | `black-forest-labs/flux-1.1-pro-ultra` | retired 2026-08-23 (superseded) |
+
+## Workflows (FR-862)
+
+Both workflows call one reusable body, `.github/workflows/_pipeline.yml`,
+and share the concurrency group `daily-publish`. That sharing is
+load-bearing, not cosmetic: overlapping runs each refresh the DA token,
+which **rotates on every use**, so the second run would authenticate
+with a token the first already invalidated while the secret write races.
+`tests/test_workflows.py` fails if the two callers drift.
+
+| Workflow | Trigger | Passes |
+|---|---|---|
+| `daily-publish` | cron `0 7 * * *` + dispatch | nothing — today's UTC date only |
+| `publish-now` | dispatch only | `model`, `date` |
+
+```bash
+gh workflow run publish-now.yml                          # publishes now
+gh workflow run publish-now.yml -f model=nano-banana-2   # pin the model
+```
+
+**Running it publishes.** There is no dry-run flag and no force flag:
+invoking the workflow *is* the intent, and a button that does nothing
+by default is not a safety feature. Every run takes the next slot for
+the day and publishes it.
+
+### Inputs
+
+- **`model`** (default `random`) — pin one roster entry. An unknown
+  name raises `RosterError` rather than silently falling back.
+- **`date`** (default empty = today UTC) — strict `YYYY-MM-DD`.
+
+Both arrive as strings and are parsed in [tools/inputs.py](tools/inputs.py)
+before any side effect.
+
+### Slots
+
+Run identity is `(date, slot)`. The day's first run takes slot 0 and
+writes `posts/<date>.md`; each further run that day takes the next slot
+and writes `posts/<date>-<slot>.md`.
+
+The **one** thing that diverts a run: an in-flight slot (`drawn` or
+`submitted`) is resumed rather than duplicated, because its committed
+ledger row may already guard a DeviantArt call in flight (FR-826 R-3).
+That is crash recovery, not a guard against the operator.
+
+Ledger rows written before slots existed have no `slot` field and
+normalize to 0 when read. Corpus no-repeat is global across dates and
+slots, so no post can reuse a published prompt.
 
 ## Secrets
 

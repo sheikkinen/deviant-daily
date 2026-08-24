@@ -9,6 +9,7 @@ dependencies = [
     "httpx",
     "requests",
     "pyyaml",
+    "pillow",
 ]
 
 [project.optional-dependencies]

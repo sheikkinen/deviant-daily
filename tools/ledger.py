@@ -1,12 +1,14 @@
-"""Committed idempotency ledger (FR-826 R-3, AC-12).
+"""Committed idempotency ledger (FR-826 R-3, AC-12; FR-862 R-3).
 
 `state/published.jsonl` is the only guard around DA side effects.
-Statuses: drawn -> submitted -> published | skipped. Every transition
+Statuses: drawn -> submitted -> published | skipped. Run identity is
+`(date, slot)`; each run of the day takes the next slot. Old slot-less
+rows normalize to slot 0 here, at the read boundary. Every transition
 that guards an external call is committed-and-pushed BEFORE the next
-side effect. A rerun that finds an incomplete same-day record resumes
-from its status — it never draws a new prompt. An unrecoverable
-post-publish commit failure raises RecoveryRequired with the
-non-secret DA identifiers in the message.
+side effect. A rerun that finds an incomplete record for the selected
+slot resumes from its status — it never draws a new prompt. An
+unrecoverable post-publish commit failure raises RecoveryRequired with
+the non-secret DA identifiers in the message.
 """
 
 from __future__ import annotations
@@ -28,17 +30,34 @@ class RecoveryRequired(RuntimeError):
     """Published on DA but ledger commit failed — manual repair needed."""
 
 
+def _normalize_slot(entry: dict) -> dict:
+    slot = entry.get("slot", 0)
+    if isinstance(slot, bool) or not isinstance(slot, int) or slot < 0:
+        raise ValueError(f"invalid slot in ledger row: {slot!r}")
+    return {**entry, "slot": slot}
+
+
 def read_ledger(path: str | Path) -> list[dict]:
     p = Path(path)
     if not p.exists():
         return []
-    return [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
+    return [
+        _normalize_slot(json.loads(line))
+        for line in p.read_text().splitlines()
+        if line.strip()
+    ]
 
 
-def entry_for_date(entries: list[dict], date: str) -> dict | None:
-    """Latest ledger entry for the given ISO date, or None."""
-    todays = [e for e in entries if e.get("date") == date]
-    return todays[-1] if todays else None
+def entry_for_slot(entries: list[dict], date: str, slot: int = 0) -> dict | None:
+    """Latest ledger entry for one (date, slot) run, or None."""
+    matching = [e for e in entries if e.get("date") == date and e["slot"] == slot]
+    return matching[-1] if matching else None
+
+
+def latest_slot(entries: list[dict], date: str) -> int:
+    """Highest slot used on the date; -1 when the date is untouched."""
+    slots = [e["slot"] for e in entries if e.get("date") == date]
+    return max(slots) if slots else -1
 
 
 def used_source_ids(entries: list[dict]) -> set[str]:
@@ -50,6 +69,7 @@ def append_entry(path: str | Path, entry: dict) -> dict:
         raise ValueError(f"invalid status: {entry.get('status')}")
     if not entry.get("date"):
         entry["date"] = datetime.now(UTC).date().isoformat()
+    entry = _normalize_slot(entry)
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("a") as f:
@@ -96,7 +116,7 @@ def record_transition(
     commit_push(
         repo_dir,
         [rel, *(extra_paths or [])],
-        f"ledger: {entry['date']} -> {entry['status']}",
+        f"ledger: {entry['date']}#{written['slot']} -> {entry['status']}",
         runner=runner,
     )
     return written

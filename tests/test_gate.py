@@ -24,8 +24,11 @@ def test_low_confidence_skips():
     assert "confidence" in r.reason
 
 
-def test_medium_confidence_skips():
-    assert evaluate_gate({**VALID, "confidence": "medium"}).publish is False
+def test_medium_confidence_publishes_escalated():
+    """Policy revised 2026-08-23: medium is a hedge, not an unreadable image."""
+    r = evaluate_gate({**VALID, "confidence": "medium"})
+    assert r.publish is True
+    assert r.post.mature is True
 
 
 def test_tags_normalized():
