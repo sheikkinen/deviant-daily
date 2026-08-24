@@ -125,7 +125,9 @@ def publish_step(
 
     # 1. refresh (rotates) → 2. persist NEW token BEFORE any publish effect
     tok = da_api.refresh_token(
-        env["DA_CLIENT_ID"], env["DA_CLIENT_SECRET"], env["DA_REFRESH_TOKEN"],
+        env["DA_CLIENT_ID"],
+        env["DA_CLIENT_SECRET"],
+        env["DA_REFRESH_TOKEN"],
         session=session,
     )
     da_api.persist_refresh_secret(
@@ -138,18 +140,28 @@ def publish_step(
     record_transition(
         REPO_DIR,
         LEDGER,
-        {"date": date, "status": "submitted", "prompt": prompt,
-         "source_file": source_file},
+        {
+            "date": date,
+            "status": "submitted",
+            "prompt": prompt,
+            "source_file": source_file,
+        },
         runner=runner,
     )
     itemid = da_api.stash_submit(
-        access, image_path, post["title"],
+        access,
+        image_path,
+        post["title"],
         render_artist_comments(PostDescription.model_validate(post)),
-        post["tags"], session=session,
+        post["tags"],
+        session=session,
     )
     result = da_api.stash_publish(
-        access, itemid, post["mature"],
-        post.get("mature_level"), post.get("mature_classification"),
+        access,
+        itemid,
+        post["mature"],
+        post.get("mature_level"),
+        post.get("mature_classification"),
         session=session,
     )
     url = result.get("url")
@@ -158,14 +170,22 @@ def publish_step(
     post_path = REPO_DIR / "posts" / f"{date}.md"
     post_path.parent.mkdir(exist_ok=True)
     post_path.write_text(
-        render_post_md(PostDescription.model_validate(post), prompt, model_name, url, date)
+        render_post_md(
+            PostDescription.model_validate(post), prompt, model_name, url, date
+        )
     )
     try:
         record_transition(
             REPO_DIR,
             LEDGER,
-            {"date": date, "status": "published", "prompt": prompt,
-             "source_file": source_file, "itemid": itemid, "url": url},
+            {
+                "date": date,
+                "status": "published",
+                "prompt": prompt,
+                "source_file": source_file,
+                "itemid": itemid,
+                "url": url,
+            },
             runner=runner,
             extra_paths=[f"posts/{date}.md"],
         )

@@ -27,7 +27,9 @@ _spec.loader.exec_module(_spec and extract_corpus)
 def test_roster_frozen_models():
     assert ACTIVE_MODELS["z-image"]["slug"] == "prunaai/z-image-turbo"
     assert ACTIVE_MODELS["flux-ultra"]["slug"] == "black-forest-labs/flux-1.1-pro-ultra"
-    assert "grok" in ACTIVE_MODELS  # enabled 2026-08-19, slug xai/grok-imagine-image-2 (R-4)
+    assert (
+        "grok" in ACTIVE_MODELS
+    )  # enabled 2026-08-19, slug xai/grok-imagine-image-2 (R-4)
     assert ACTIVE_MODELS["grok"]["slug"] == "xai/grok-imagine-image-2"
     assert DISABLED_MODELS == {}
 
@@ -39,6 +41,7 @@ def test_roster_zero_active_hard_fails():
 
 def test_roster_drop_logs_structured(caplog):
     import logging
+
     with caplog.at_level(logging.WARNING):
         usable = validate_roster(unavailable=["z-image"])
     assert "flux-ultra" in usable
@@ -83,7 +86,9 @@ def test_parse_entries_prompt_ends_at_steps():
         "    png:IHDR.bit_depth: 8",
     ]
     entries = extract_corpus.parse_entries(lines)
-    assert entries == [("00001-123-foo.png", "a dark castle, moonlight wrapped continuation line")]
+    assert entries == [
+        ("00001-123-foo.png", "a dark castle, moonlight wrapped continuation line")
+    ]
 
 
 def test_source_file_reduced_to_id(tmp_path):
@@ -96,14 +101,19 @@ def test_source_file_reduced_to_id(tmp_path):
     out = tmp_path / "corpus.jsonl"
     extract_corpus.extract(log, out)
     import json
+
     row = json.loads(out.read_text())
     assert row["source_file"] == "00314-268"
 
 
 def test_render_post_md_shape():
     post = PostDescription(
-        title="Veil", paragraphs=["One.", "Two."], quote="Be Art.",
-        tags=["gothic"], confidence="high", mature=False,
+        title="Veil",
+        paragraphs=["One.", "Two."],
+        quote="Be Art.",
+        tags=["gothic"],
+        confidence="high",
+        mature=False,
     )
     md = render_post_md(post, "prompt text", "z-image", "https://da/x", "2026-08-19")
     assert md.startswith("# Veil\n\nOne.\n\nTwo.\n\n> Be Art.\n\n#gothic")
@@ -113,9 +123,14 @@ def test_render_post_md_shape():
 
 def test_render_artist_comments_style_contract():
     from tools.post import DESCRIPTION_FOOTER, render_artist_comments
+
     post = PostDescription(
-        title="Veil", paragraphs=["One.", "Two."], quote="Vow.",
-        tags=["gothic"], confidence="high", mature=False,
+        title="Veil",
+        paragraphs=["One.", "Two."],
+        quote="Vow.",
+        tags=["gothic"],
+        confidence="high",
+        mature=False,
     )
     comments = render_artist_comments(post)
     # DA renders \n\n as an EMPTY <p> that collapses to zero height

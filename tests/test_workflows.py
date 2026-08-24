@@ -34,7 +34,9 @@ def test_workflow_exists(name):
 
 def test_both_callers_share_one_concurrency_group():
     daily, now = load("daily.yml"), load("publish-now.yml")
-    assert daily["concurrency"]["group"] == now["concurrency"]["group"] == "daily-publish"
+    assert (
+        daily["concurrency"]["group"] == now["concurrency"]["group"] == "daily-publish"
+    )
     assert daily["concurrency"]["cancel-in-progress"] is False
     assert now["concurrency"]["cancel-in-progress"] is False
 

@@ -25,6 +25,7 @@ def ok_runner(cmd, **kw):
 def make_failing_runner(fail_on: str):
     def runner(cmd, **kw):
         return FAIL if fail_on in " ".join(cmd) else OK
+
     return runner
 
 
@@ -36,7 +37,9 @@ def repo(tmp_path):
 
 def test_append_and_read(repo):
     ledger = repo / "state" / "published.jsonl"
-    append_entry(ledger, {"date": "2026-08-19", "status": "drawn", "source_file": "1-2"})
+    append_entry(
+        ledger, {"date": "2026-08-19", "status": "drawn", "source_file": "1-2"}
+    )
     entries = read_ledger(ledger)
     assert entries[0]["status"] == "drawn"
 
@@ -76,7 +79,9 @@ def test_commit_failure_raises_before_return(repo):
     ledger = repo / "state" / "published.jsonl"
     with pytest.raises(LedgerCommitError):
         record_transition(
-            repo, ledger, {"date": "d1", "status": "drawn"},
+            repo,
+            ledger,
+            {"date": "d1", "status": "drawn"},
             runner=make_failing_runner("push"),
         )
 

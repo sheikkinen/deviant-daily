@@ -12,6 +12,7 @@ from tools.roster import ACTIVE_MODELS, RosterError
 
 def test_parse_date_empty_is_today_utc():
     from datetime import UTC, datetime
+
     assert parse_date("") == datetime.now(UTC).date().isoformat()
 
 
@@ -19,7 +20,9 @@ def test_parse_date_accepts_iso():
     assert parse_date("2026-08-23") == "2026-08-23"
 
 
-@pytest.mark.parametrize("raw", ["23-08-2026", "2026-8-3", "2026-08-23-manual", "today"])
+@pytest.mark.parametrize(
+    "raw", ["23-08-2026", "2026-8-3", "2026-08-23-manual", "today"]
+)
 def test_parse_date_rejects_non_iso(raw):
     with pytest.raises(ValueError):
         parse_date(raw)

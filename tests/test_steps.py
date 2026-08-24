@@ -57,8 +57,9 @@ class Recorder:
         joined = " ".join(cmd)
         if cmd[0] == "gh":
             self.order.append("gh:secret-set")
-            return SimpleNamespace(returncode=1 if self.fail_gh else 0,
-                                   stderr="", stdout="")
+            return SimpleNamespace(
+                returncode=1 if self.fail_gh else 0, stderr="", stdout=""
+            )
         if "git commit" in joined:
             self.git_transitions += 1
             self.order.append(f"git:commit-{self.git_transitions}")
@@ -82,8 +83,9 @@ def env(monkeypatch, tmp_path):
 def test_persist_before_any_da_side_effect(env):
     _tmp_path, img = env
     rec = Recorder()
-    steps.publish_step(POST, img, "2026-08-19", "prompt", "s1", "z-image",
-                       runner=rec.run, session=rec)
+    steps.publish_step(
+        POST, img, "2026-08-19", "prompt", "s1", "z-image", runner=rec.run, session=rec
+    )
     o = rec.order
     assert o.index("gh:secret-set") < o.index("http:submit")
     assert o.index("gh:secret-set") < o.index("http:publish")
@@ -97,8 +99,9 @@ def test_persist_failure_aborts_before_submit(env):
     _tmp_path, img = env
     rec = Recorder(fail_gh=True)
     with pytest.raises(TokenPersistError):
-        steps.publish_step(POST, img, "2026-08-19", "p", "s1", "m",
-                           runner=rec.run, session=rec)
+        steps.publish_step(
+            POST, img, "2026-08-19", "p", "s1", "m", runner=rec.run, session=rec
+        )
     assert not any(x in rec.order for x in ("http:submit", "http:publish"))
 
 
@@ -106,8 +109,9 @@ def test_submitted_commit_failure_blocks_submit(env):
     _tmp_path, img = env
     rec = Recorder(fail_git_on_call=1)
     with pytest.raises(LedgerCommitError):
-        steps.publish_step(POST, img, "2026-08-19", "p", "s1", "m",
-                           runner=rec.run, session=rec)
+        steps.publish_step(
+            POST, img, "2026-08-19", "p", "s1", "m", runner=rec.run, session=rec
+        )
     assert "http:submit" not in rec.order
 
 
@@ -115,8 +119,9 @@ def test_post_publish_commit_failure_is_recovery_required(env):
     _tmp_path, img = env
     rec = Recorder(fail_git_on_call=2)
     with pytest.raises(RecoveryRequired) as exc:
-        steps.publish_step(POST, img, "2026-08-19", "p", "s1", "m",
-                           runner=rec.run, session=rec)
+        steps.publish_step(
+            POST, img, "2026-08-19", "p", "s1", "m", runner=rec.run, session=rec
+        )
     assert "itemid=7" in str(exc.value)
     assert "https://da/dev" in str(exc.value)
 
@@ -124,8 +129,16 @@ def test_post_publish_commit_failure_is_recovery_required(env):
 def test_publish_writes_post_md_without_image(env):
     tmp_path, img = env
     rec = Recorder()
-    result = steps.publish_step(POST, img, "2026-08-19", "the prompt", "s1",
-                                "z-image", runner=rec.run, session=rec)
+    result = steps.publish_step(
+        POST,
+        img,
+        "2026-08-19",
+        "the prompt",
+        "s1",
+        "z-image",
+        runner=rec.run,
+        session=rec,
+    )
     assert result["url"] == "https://da/dev"
     md = (tmp_path / "posts" / "2026-08-19.md").read_text()
     assert md.startswith("# T")
@@ -136,8 +149,9 @@ def test_publish_writes_post_md_without_image(env):
 def test_gate_skip_committed_before_green(env, monkeypatch):
     tmp_path, _ = env
     rec = Recorder()
-    result = steps.gate_step({**POST, "confidence": "low"}, "2026-08-19",
-                             "p", "s1", runner=rec.run)
+    result = steps.gate_step(
+        {**POST, "confidence": "low"}, "2026-08-19", "p", "s1", runner=rec.run
+    )
     assert result["publish"] is False
     ledger = (tmp_path / "state" / "published.jsonl").read_text()
     entry = json.loads(ledger.splitlines()[-1])

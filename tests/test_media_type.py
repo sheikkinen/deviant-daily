@@ -33,9 +33,13 @@ def test_describe_uses_content_type(tmp_path):
         def invoke(self, messages):
             captured["url"] = messages[0].content[1]["image_url"]["url"]
             from tools.gate import PostDescription
+
             return PostDescription(
-                title="t", paragraphs=["p"], tags=["a"],
-                confidence="high", mature=False,
+                title="t",
+                paragraphs=["p"],
+                tags=["a"],
+                confidence="high",
+                mature=False,
             )
 
     class FakeLLM:
@@ -43,5 +47,6 @@ def test_describe_uses_content_type(tmp_path):
             return FakeStructured()
 
     from tools.vision import describe_image
+
     describe_image(img, "prompt", llm=FakeLLM())
     assert captured["url"].startswith("data:image/jpeg;base64,")

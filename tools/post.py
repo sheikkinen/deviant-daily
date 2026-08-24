@@ -12,13 +12,15 @@ PARA_SEP = "\n\u00a0\n"
 # STYLE-CONTRACT.md §3 closing block — static, appended to every DA description
 DESCRIPTION_FOOTER = (
     "\u2728 Visit also my DeviantArt Gallery! \u2728\n"
-    "https://www.deviantart.com/sheikkinen/gallery" + PARA_SEP +
-    "\U0001f4c2 Explore Premium Downloads, Galleries, Adoptables, or Commission "
+    "https://www.deviantart.com/sheikkinen/gallery"
+    + PARA_SEP
+    + "\U0001f4c2 Explore Premium Downloads, Galleries, Adoptables, or Commission "
     "Custom Work! The best of the best are reserved for Subscribers! Feel free "
     "to browse through my galleries, check out adoptable characters, or reach "
     "out for custom commissions. Let's bring a piece of my artistic vision "
-    "into your world!" + PARA_SEP +
-    "Thank you for your support and for being part of this creative journey! \U0001f389"
+    "into your world!"
+    + PARA_SEP
+    + "Thank you for your support and for being part of this creative journey! \U0001f389"
 )
 
 

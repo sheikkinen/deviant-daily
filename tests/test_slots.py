@@ -34,13 +34,16 @@ def _corpus(tmp_path):
 
 
 def test_read_ledger_normalizes_slotless_rows_to_zero(tmp_path):
-    p = _write(tmp_path, [{"date": "2026-08-19", "status": "published", "source_file": "001"}])
+    p = _write(
+        tmp_path, [{"date": "2026-08-19", "status": "published", "source_file": "001"}]
+    )
     assert read_ledger(p)[0]["slot"] == 0
 
 
 def test_read_ledger_normalizes_the_live_committed_ledger():
     """AC-08 against the real file, not a fixture."""
     from pathlib import Path
+
     live = Path(__file__).parent.parent / "state" / "published.jsonl"
     entries = read_ledger(live)
     assert entries, "live ledger is empty"
@@ -78,13 +81,25 @@ def test_latest_slot(tmp_path):
 def test_entry_for_date_is_gone():
     """A date-only lookup surviving beside a slot-aware one is the defect."""
     from tools import ledger
+
     assert not hasattr(ledger, "entry_for_date")
 
 
 def test_draw_prompt_resumes_the_named_slot(tmp_path):
     rows = [
-        {"date": "2026-08-23", "status": "published", "source_file": "001", "prompt": "p-one"},
-        {"date": "2026-08-23", "status": "drawn", "slot": 1, "source_file": "002", "prompt": "p-two"},
+        {
+            "date": "2026-08-23",
+            "status": "published",
+            "source_file": "001",
+            "prompt": "p-one",
+        },
+        {
+            "date": "2026-08-23",
+            "status": "drawn",
+            "slot": 1,
+            "source_file": "002",
+            "prompt": "p-two",
+        },
     ]
     entries = read_ledger(_write(tmp_path, rows))
     drawn = draw_prompt(_corpus(tmp_path), entries, "2026-08-23", slot=1)
@@ -104,6 +119,13 @@ def test_draw_prompt_new_slot_never_reuses_published_source(tmp_path):
     assert drawn["source_file"] == "003"
 
 
-@pytest.mark.parametrize("slot,expected", [(0, "posts/2026-08-23.md"), (1, "posts/2026-08-23-1.md"), (2, "posts/2026-08-23-2.md")])
+@pytest.mark.parametrize(
+    "slot,expected",
+    [
+        (0, "posts/2026-08-23.md"),
+        (1, "posts/2026-08-23-1.md"),
+        (2, "posts/2026-08-23-2.md"),
+    ],
+)
 def test_post_path_is_slot_aware(slot, expected):
     assert post_path("2026-08-23", slot) == expected

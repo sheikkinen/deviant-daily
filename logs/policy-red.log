@@ -28,7 +28,7 @@ ________________ test_every_image_is_downscaled_even_when_small ________________
         data, media_type = prepare_for_vision(_png(900, 500))
 >       assert media_type == "image/jpeg"
 E       AssertionError: assert 'image/png' == 'image/jpeg'
-E         
+E
 E         - image/jpeg
 E         ?       - ^
 E         + image/png

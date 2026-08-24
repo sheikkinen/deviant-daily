@@ -1,6 +1,5 @@
 """Tests: gate schema, tags, mature combos (AC-10, AC-13, AC-18)."""
 
-
 from tools.gate import PostDescription, evaluate_gate
 
 VALID = {
@@ -45,8 +44,12 @@ def test_mature_true_requires_level_and_classification():
     r = evaluate_gate({**VALID, "mature": True})
     assert r.publish is False
     ok = evaluate_gate(
-        {**VALID, "mature": True, "mature_level": "moderate",
-         "mature_classification": ["nudity"]}
+        {
+            **VALID,
+            "mature": True,
+            "mature_level": "moderate",
+            "mature_classification": ["nudity"],
+        }
     )
     assert ok.publish is True
 
@@ -58,8 +61,12 @@ def test_mature_false_forbids_level():
 
 def test_invalid_classification_rejects():
     r = evaluate_gate(
-        {**VALID, "mature": True, "mature_level": "strict",
-         "mature_classification": ["violence_extreme"]}
+        {
+            **VALID,
+            "mature": True,
+            "mature_level": "strict",
+            "mature_classification": ["violence_extreme"],
+        }
     )
     assert r.publish is False
 

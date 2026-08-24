@@ -30,8 +30,14 @@ class FakeSession:
 
 
 def test_refresh_returns_rotated_token():
-    s = FakeSession([FakeResponse(200, {
-        "access_token": "AT", "refresh_token": "NEW_RT", "expires_in": 3600})])
+    s = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {"access_token": "AT", "refresh_token": "NEW_RT", "expires_in": 3600},
+            )
+        ]
+    )
     tok = da.refresh_token("cid", "sec", "OLD_RT", session=s)
     assert tok["refresh_token"] == "NEW_RT"
     url, kw = s.calls[0]
@@ -48,8 +54,9 @@ def test_refresh_failure_raises():
 
 def test_429_backoff_then_success(monkeypatch):
     monkeypatch.setattr(da.time, "sleep", lambda s: None)
-    s = FakeSession([FakeResponse(429), FakeResponse(429),
-                     FakeResponse(200, {"status": "success"})])
+    s = FakeSession(
+        [FakeResponse(429), FakeResponse(429), FakeResponse(200, {"status": "success"})]
+    )
     da.placebo("AT", session=s)
     assert len(s.calls) == 3
 
@@ -65,8 +72,9 @@ def test_submit_shape(tmp_path):
     img = tmp_path / "x.png"
     img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
     s = FakeSession([FakeResponse(200, {"status": "success", "itemid": 42})])
-    itemid = da.stash_submit("AT", img, "Title", "c1\n\nc2",
-                             ["gothic", "aiart"], session=s)
+    itemid = da.stash_submit(
+        "AT", img, "Title", "c1\n\nc2", ["gothic", "aiart"], session=s
+    )
     assert itemid == 42
     url, kw = s.calls[0]
     assert url.endswith("/stash/submit")
@@ -92,8 +100,14 @@ def test_publish_shape_non_mature():
 
 def test_publish_shape_mature():
     s = FakeSession([FakeResponse(200, {"status": "success", "url": "u"})])
-    da.stash_publish("AT", 42, mature=True, mature_level="moderate",
-                     mature_classification=["nudity", "sexual"], session=s)
+    da.stash_publish(
+        "AT",
+        42,
+        mature=True,
+        mature_level="moderate",
+        mature_classification=["nudity", "sexual"],
+        session=s,
+    )
     _url, kw = s.calls[0]
     data = kw["data"]
     assert ("is_mature", "true") in data

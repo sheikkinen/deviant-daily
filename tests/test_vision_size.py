@@ -20,9 +20,14 @@ def _png(width: int, height: int, noisy: bool = False) -> bytes:
     img = Image.new("RGB", (width, height), (30, 40, 60))
     if noisy:  # defeat PNG compression so the fixture is genuinely large
         import random
+
         rnd = random.Random(0)
-        img.putdata([(rnd.randrange(256), rnd.randrange(256), rnd.randrange(256))
-                     for _ in range(width * height)])
+        img.putdata(
+            [
+                (rnd.randrange(256), rnd.randrange(256), rnd.randrange(256))
+                for _ in range(width * height)
+            ]
+        )
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
@@ -33,6 +38,7 @@ def test_small_image_is_still_re_encoded():
     data, media_type = prepare_for_vision(_png(800, 450))
     assert media_type == "image/jpeg"
     assert data[:3] == b"\xff\xd8\xff"
+
 
 def test_oversized_payload_is_shrunk_below_the_ceiling():
     original = _png(2000, 1500, noisy=True)

@@ -20,9 +20,7 @@ class CorpusExhausted(RuntimeError):
 
 def load_corpus(path: str | Path) -> list[dict]:
     rows = [
-        json.loads(line)
-        for line in Path(path).read_text().splitlines()
-        if line.strip()
+        json.loads(line) for line in Path(path).read_text().splitlines() if line.strip()
     ]
     if not rows:
         raise CorpusExhausted("corpus is empty")

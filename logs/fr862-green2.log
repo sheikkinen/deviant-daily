@@ -15,12 +15,12 @@ tmp_path = PosixPath('/private/var/folders/dx/cygn8k4d4xd4fhnmrqs7z3vh0000gn/T/p
 >       drawn = draw_prompt(corpus, entries, "2026-08-19")
                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests/test_ledger.py:100: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ledger.py:100:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tools/corpus.py:41: in draw_prompt
     existing = entry_for_slot(ledger_entries, date, slot)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 entries = [{'date': '2026-08-19', 'status': 'drawn', 'prompt': 'orig', 'source_file': 'sX'}]
 date = '2026-08-19', slot = 0
@@ -43,12 +43,12 @@ tmp_path = PosixPath('/private/var/folders/dx/cygn8k4d4xd4fhnmrqs7z3vh0000gn/T/p
 >       drawn = draw_prompt(corpus, entries, "2026-08-19")
                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests/test_ledger.py:110: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_ledger.py:110:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tools/corpus.py:41: in draw_prompt
     existing = entry_for_slot(ledger_entries, date, slot)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 entries = [{'date': '2026-08-19', 'status': 'published', 'source_file': 's1'}]
 date = '2026-08-19', slot = 0
@@ -90,15 +90,15 @@ ________________ test_both_callers_share_one_concurrency_group _________________
 >       daily, now = load("daily.yml"), load("publish-now.yml")
                                         ^^^^^^^^^^^^^^^^^^^^^^^
 
-tests/test_workflows.py:36: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_workflows.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/test_workflows.py:22: in load
     return yaml.safe_load((WF / name).read_text())
                           ^^^^^^^^^^^^^^^^^^^^^^^
 /usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
     with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows/publish-now.yml')
 mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
@@ -132,15 +132,15 @@ ________________________ test_pipeline_is_callable_only ________________________
 >       assert "workflow_call" in triggers(load("_pipeline.yml"))
                                            ^^^^^^^^^^^^^^^^^^^^^
 
-tests/test_workflows.py:49: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_workflows.py:49:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/test_workflows.py:22: in load
     return yaml.safe_load((WF / name).read_text())
                           ^^^^^^^^^^^^^^^^^^^^^^^
 /usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
     with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows/_pipeline.yml')
 mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
@@ -164,15 +164,15 @@ _________________________ test_publish_now_input_shape _________________________
 >       inputs = triggers(load("publish-now.yml"))["workflow_dispatch"]["inputs"]
                           ^^^^^^^^^^^^^^^^^^^^^^^
 
-tests/test_workflows.py:64: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_workflows.py:64:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/test_workflows.py:22: in load
     return yaml.safe_load((WF / name).read_text())
                           ^^^^^^^^^^^^^^^^^^^^^^^
 /usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
     with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows/publish-now.yml')
 mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
@@ -196,14 +196,14 @@ _________________ test_secrets_are_not_inlined_in_the_callers __________________
         for name in ("daily.yml", "publish-now.yml"):
 >           assert "secrets." not in (WF / name).read_text()
 E           AssertionError: assert 'secrets.' not in 'name: daily... anthropic\n'
-E             
+E
 E             'secrets.' is contained here:
 E               OKEN: ${{ secrets.REPLICATE_API_TOKEN }}
 E             ?           ++++++++
 E                         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 E                         DA_CLIENT_ID: ${{ secrets.DA_CLIENT_ID }}
 E                         DA_CLIENT_SECRET: ${{ secrets.DA_CLIENT_SECRET }}...
-E             
+E
 E             ...Full output truncated (3 lines hidden), use '-vv' to show
 
 tests/test_workflows.py:75: AssertionError

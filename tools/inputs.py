@@ -42,5 +42,7 @@ def parse_model(raw: str) -> str:
     if raw.lower() in RANDOM:
         return ""
     if raw not in ACTIVE_MODELS:
-        raise RosterError(f"unknown model {raw!r}: not in roster {sorted(ACTIVE_MODELS)}")
+        raise RosterError(
+            f"unknown model {raw!r}: not in roster {sorted(ACTIVE_MODELS)}"
+        )
     return raw

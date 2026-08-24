@@ -54,7 +54,9 @@ def test_unknown_source_files_get_distinct_ids():
 
 
 def test_real_source_file_is_its_own_id():
-    assert row_id({"prompt": "p", "source_file": "00105-408526945"}) == "00105-408526945"
+    assert (
+        row_id({"prompt": "p", "source_file": "00105-408526945"}) == "00105-408526945"
+    )
 
 
 def test_publishing_one_unknown_row_does_not_exclude_the_others(tmp_path):
@@ -64,8 +66,14 @@ def test_publishing_one_unknown_row_does_not_exclude_the_others(tmp_path):
         {"prompt": "second unknown prompt", "source_file": "unknown"},
     ]
     corpus.write_text("".join(json.dumps(r) + "\n" for r in rows))
-    used = [{"date": "2026-08-22", "slot": 0, "status": "published",
-             "source_file": row_id(rows[0])}]
+    used = [
+        {
+            "date": "2026-08-22",
+            "slot": 0,
+            "status": "published",
+            "source_file": row_id(rows[0]),
+        }
+    ]
     drawn = draw_prompt(corpus, used, "2026-08-23", slot=0)
     assert drawn["prompt"] == "second unknown prompt"
     assert drawn["source_file"] == row_id(rows[1])

@@ -52,10 +52,15 @@ def test_medium_confidence_publishes_escalated_to_mature():
 
 
 def test_medium_keeps_the_models_own_mature_classification():
-    result = evaluate_gate({
-        **BASE, "confidence": "medium", "mature": True,
-        "mature_level": "strict", "mature_classification": ["nudity"],
-    })
+    result = evaluate_gate(
+        {
+            **BASE,
+            "confidence": "medium",
+            "mature": True,
+            "mature_level": "strict",
+            "mature_classification": ["nudity"],
+        }
+    )
     assert result.publish is True
     assert result.post.mature_level == "strict"
     assert result.post.mature_classification == ["nudity"]

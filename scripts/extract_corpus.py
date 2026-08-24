@@ -97,8 +97,15 @@ def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
     name_re = name_blocklist_re(NAME_BLOCKLIST)
     term_re = term_blocklist_re(TERM_BLOCKLIST)
 
-    stats = {"entries": len(entries), "name_excluded": 0, "term_excluded": 0,
-             "empty": 0, "duplicates": 0, "scan_hits": 0, "kept": 0}
+    stats = {
+        "entries": len(entries),
+        "name_excluded": 0,
+        "term_excluded": 0,
+        "empty": 0,
+        "duplicates": 0,
+        "scan_hits": 0,
+        "kept": 0,
+    }
     seen: set[str] = set()
     rows: list[dict] = []
     for source, raw in entries:
