@@ -24,19 +24,23 @@ FR-826.
 
 - **Source:** operator's local `signed.log` generation history
   (9,038 parsed entries; 13,682 raw log records)
-- **Kept:** 5,893 prompts after sanitization and dedup (1,937 rows keep
-  `source_file: unknown` — their raw basenames carry no generation id)
+- **Kept:** 7,392 prompts after sanitization, strip-not-drop recovery,
+  and dedup (2,020 rows keep `source_file: unknown` — their raw
+  basenames carry no generation id)
 - **v2 fields (FR-883):** `prompt, source_file, local_model, dialect,
   seed, size, created`; `dialect ∈ {prose, tags}` derived mechanically
   (Pony/SDXL-family model or `score_`-family negative prompt ⇒ tags) —
-  split: 3,329 prose / 2,564 tags. `==== Signed:` duplicate blocks are
+  split: 4,659 prose / 2,733 tags. `==== Signed:` duplicate blocks are
   excluded at parse time.
 - **Approval:** operator approved publication 2026-08-19
 - **Redaction policy** (blocklists live in
   [scripts/extract_corpus.py](scripts/extract_corpus.py)):
   - LoRA/weight syntax stripped from kept prompts
-  - prompts containing personal names excluded (2,020)
-  - prompts containing non-consent/violence terms excluded (69)
+  - name-bearing comma/sentence segments stripped, rows kept
+    (strip-not-drop, FR-884: 1,499 rows recovered); serialized output
+    is scanned for name leaks before the file is finalized — a leak
+    raises and leaves no artifact
+  - prompts containing non-consent/violence terms excluded (88)
   - mechanical scan: no absolute paths, token-like strings, or emails
   - `source_file` reduced to the numeric generation id
 - The raw unsanitized corpus never leaves the operator's machine.

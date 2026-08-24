@@ -43,6 +43,16 @@ requirements:
     description: >
       Corpus regeneration must preserve every v1 prompt and every published ledger source id
       (direct source_file or row_id match).
+  - id: REQ-DD-083
+    description: >
+      Name-bearing comma/sentence segments must be stripped mechanically (strip-not-drop,
+      FR-884) with recovery accounting: kept == baseline_kept + name_recovered_rows, and a
+      prompt reduced to nothing drops through the existing short/empty gate.
+  - id: REQ-DD-084
+    description: >
+      Serialized corpus output must be scanned for NAME_BLOCKLIST leaks before the
+      destination file is finalized; a seeded leak raises and leaves the destination
+      absent or byte-for-byte unchanged, and the committed corpus contains zero matches.
   - id: REQ-DD-050
     description: >
       Post Markdown rendering must produce the expected shape with title, paragraphs, quote, tag, deviation link, and model name.

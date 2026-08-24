@@ -2,7 +2,7 @@
 
 **Priority:** MEDIUM
 **Type:** Enhancement
-**Status:** Judged — approved with revisions (R-1..R-4 folded)
+**Status:** Completed 2026-08-24
 **Effort:** 0.5 days
 **Requested:** 2026-08-24
 **First consumer / first event:** the daily draw step, on the first run
@@ -96,27 +96,27 @@ is out of scope per operator ratification of the mechanical tier.
 
 ## Acceptance Criteria (revised per judgement)
 
-- [ ] AC-01: Requirement-marked RED tests cover `nina1`, `katja_x`,
+- [x] AC-01: Requirement-marked RED tests cover `nina1`, `katja_x`,
       `Tuija's`, `Nina Heikkinen` (adjacent surname, same segment),
       comma-free prose sentence stripping, and a name-only prompt
       dropping through the existing short/empty gate
-- [ ] AC-02: Name-bearing comma/sentence-delimited segments stripped
+- [x] AC-02: Name-bearing comma/sentence-delimited segments stripped
       mechanically with existing substring/IGNORECASE semantics;
       TERM_BLOCKLIST stays whole-row exclusion
-- [ ] AC-03: Zero-leak scan runs before finalizing `out_path`; seeded
+- [x] AC-03: Zero-leak scan runs before finalizing `out_path`; seeded
       leak raises and leaves no new partial/unsafe destination artifact
-- [ ] AC-04: Stats distinguish `name_candidates`,
+- [x] AC-04: Stats distinguish `name_candidates`,
       `name_stripped_segments`, `name_recovered_rows`, post-strip drops
       by reason; canonical run satisfies `kept == 5893 +
       name_recovered_rows` with counts recorded in this FR
-- [ ] AC-05: Recovered rows use the same v2 metadata path (dialect,
+- [x] AC-05: Recovered rows use the same v2 metadata path (dialect,
       seed, size, created) — no special-case schema
-- [ ] AC-06: FR-883 preservation tests stay green (v1 prompts present,
+- [x] AC-06: FR-883 preservation tests stay green (v1 prompts present,
       ledger source ids resolve, Signed blocks excluded,
       REQ-DD-080..082 intact)
-- [ ] AC-07: Corpus v2.1 regenerated and committed; mechanical scan of
+- [x] AC-07: Corpus v2.1 regenerated and committed; mechanical scan of
       committed JSONL finds zero NAME_BLOCKLIST matches
-- [ ] AC-08: README corpus provenance, extractor docstring, CAP-09, and
+- [x] AC-08: README corpus provenance, extractor docstring, CAP-09, and
       this FR's implementation record state the new contract and final
       counts
 
@@ -139,3 +139,32 @@ is out of scope per operator ratification of the mechanical tier.
   ratified 2026-08-24
 - `scripts/extract_corpus.py`, `tests/test_extract_corpus.py`,
   `capabilities/CAP-09`
+## Implementation Record (2026-08-24)
+
+Canonical regeneration counts (signed.log, 9,038 parsed entries):
+
+| Stat | Count |
+|---|---|
+| `name_candidates` | 2,021 |
+| `name_stripped_segments` | 2,344 |
+| `name_recovered_rows` | **1,499** |
+| post-strip drops: duplicates | 1,549 (was 1,054 — 495 stripped rows collided) |
+| post-strip drops: term_excluded | 88 (was 69 — 19 stripped rows term-blocked) |
+| post-strip drops: empty | 9 (was 2 — 7 name-only prompts) |
+| `kept` | **7,392** = 5,893 + 1,499 ✓ invariant |
+| zero-leak scan of committed corpus | PASS |
+
+Dialect split moved to 4,659 prose / 2,733 tags. `unknown` source ids:
+2,020 (recovered rows include id-less basenames). Decisions:
+- Two-pass admission (baseline rows first, then stripped candidates) so
+  a recovered row can never displace a baseline row via dedup — this is
+  what makes the AC-04 invariant exact rather than approximate, and
+  keeps FR-883's v1-preservation guarantee trivially true.
+- `write_corpus_atomic` scans the serialized payload string before any
+  file is touched; the raise path leaves zero artifacts (no temp file
+  is created pre-scan), the happy path lands via temp + rename.
+- Recovery note: 74% of candidates survived; the 495 new duplicate
+  collisions confirm the batch-variant hypothesis (same prompt ± name
+  segment).
+- TDD: RED b7a1328 (4 witnessed failures) → GREEN this commit.
+  REQ-DD-083/084 added to CAP-09.

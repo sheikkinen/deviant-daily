@@ -10,7 +10,9 @@ excluded and reset parser state (FR-883 AC-04).
 
 Redaction policy (public by design — the raw corpus never is):
 - LoRA/weight syntax STRIPPED from kept prompts
-- prompts containing personal names EXCLUDED (NAME_BLOCKLIST)
+- name-bearing comma/sentence segments STRIPPED (FR-884 strip-not-drop);
+  serialized output is scanned for NAME_BLOCKLIST leaks before the
+  destination file is finalized — a leak raises and leaves no artifact
 - prompts containing non-consent/violence terms EXCLUDED (TERM_BLOCKLIST)
 
 Usage:
@@ -44,6 +46,7 @@ SEED_RE = re.compile(r"\bSeed: (\d+)")
 SIZE_RE = re.compile(r"\bSize: (\d+x\d+)")
 TAGS_MODEL_RE = re.compile(r"sdxl|pony|xl", re.IGNORECASE)
 SCORE_NEG_RE = re.compile(r"score_\d")
+SENTENCE_SPLIT_RE = re.compile(r"(?<=[.;])\s+")
 # Mechanical scan patterns (AC-04: no paths, tokens, emails in output).
 # Token pattern excludes underscores: booru-style tag prompts are long
 # underscore_joined_words, not credentials.
@@ -72,6 +75,43 @@ def sanitize(prompt: str) -> str:
     prompt = LORA_RE.sub("", prompt)
     prompt = WEIGHT_RE.sub(")", prompt)
     return re.sub(r"\s+", " ", prompt).strip()
+
+
+def strip_names(prompt: str, name_re: re.Pattern[str]) -> tuple[str, int]:
+    """Drop name-bearing comma segments; comma-free segments strip at
+    sentence boundaries. Over-removal is accepted, under-removal is a
+    leak (FR-884). Returns (cleaned, segments_removed)."""
+    if not name_re.search(prompt):
+        return prompt, 0
+    removed = 0
+    kept: list[str] = []
+    for seg in prompt.split(","):
+        seg = seg.strip()
+        if not name_re.search(seg):
+            kept.append(seg)
+            continue
+        sentences = SENTENCE_SPLIT_RE.split(seg)
+        clean = [s for s in sentences if not name_re.search(s)]
+        removed += len(sentences) - len(clean)
+        if clean:
+            kept.append(" ".join(clean))
+    out = ", ".join(s for s in kept if s)
+    return re.sub(r"\s+", " ", out).strip(), removed
+
+
+def write_corpus_atomic(
+    rows: list[dict], out_path: Path, name_re: re.Pattern[str]
+) -> None:
+    """Scan serialized rows for blocklist leaks BEFORE finalizing
+    out_path; on a leak the destination stays absent or byte-for-byte
+    unchanged (FR-884 AC-03). Clean output lands via temp + rename."""
+    payload = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
+    if name_re.search(payload):
+        raise ValueError("name blocklist leak in serialized corpus output")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out_path.with_suffix(".tmp")
+    tmp.write_text(payload)
+    tmp.replace(out_path)
 
 
 def derive_dialect(local_model: str, negative: str) -> str:
@@ -151,7 +191,9 @@ def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
 
     stats = {
         "entries": len(entries),
-        "name_excluded": 0,
+        "name_candidates": 0,
+        "name_stripped_segments": 0,
+        "name_recovered_rows": 0,
         "term_excluded": 0,
         "empty": 0,
         "duplicates": 0,
@@ -161,22 +203,31 @@ def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
     }
     seen: set[str] = set()
     rows: list[dict] = []
+
+    baseline: list[tuple[dict, str]] = []
+    candidates: list[tuple[dict, str]] = []
     for e in entries:
-        source, raw = e["source"], e["prompt"]
-        prompt = sanitize(raw)
+        prompt = sanitize(e["prompt"])
+        stripped, removed = strip_names(prompt, name_re)
+        if removed:
+            stats["name_candidates"] += 1
+            stats["name_stripped_segments"] += removed
+            candidates.append((e, stripped))
+        else:
+            baseline.append((e, prompt))
+
+    def admit(e: dict, prompt: str, recovered: bool) -> None:
+        source = e["source"]
         if not prompt or len(prompt) < 10:
             stats["empty"] += 1
-            continue
-        if name_re.search(prompt):
-            stats["name_excluded"] += 1
-            continue
+            return
         if term_re.search(prompt):
             stats["term_excluded"] += 1
-            continue
+            return
         key = prompt.lower()
         if key in seen:
             stats["duplicates"] += 1
-            continue
+            return
         seen.add(key)
         # Basenames embed raw prompt text (incl. LoRA names) — keep only
         # the NNNNN-SEED id as provenance; it leaks nothing.
@@ -200,16 +251,23 @@ def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
         if hits:
             stats["scan_hits"] += 1
             print(f"SCAN EXCLUDED ({hits}): {source}", file=sys.stderr)
-            continue
+            return
         if source_id == "unknown":
             stats["unknown"] += 1
+        if recovered:
+            stats["name_recovered_rows"] += 1
         rows.append(row)
+
+    # Baseline first, then stripped candidates: a recovered row can never
+    # displace a baseline row via dedup, so kept == baseline_kept +
+    # name_recovered_rows holds exactly (FR-884 R-2).
+    for e, p in baseline:
+        admit(e, p, recovered=False)
+    for e, p in candidates:
+        admit(e, p, recovered=True)
     stats["kept"] = len(rows)
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    write_corpus_atomic(rows, out_path, name_re)
 
     if sample_n:
         sample = random.sample(rows, min(sample_n, len(rows)))
