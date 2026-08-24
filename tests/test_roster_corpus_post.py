@@ -132,9 +132,106 @@ def test_parse_entries_prompt_ends_at_steps():
         "    png:IHDR.bit_depth: 8",
     ]
     entries = extract_corpus.parse_entries(lines)
-    assert entries == [
-        ("00001-123-foo.png", "a dark castle, moonlight wrapped continuation line")
+    assert len(entries) == 1
+    assert entries[0]["source"] == "00001-123-foo.png"
+    assert entries[0]["prompt"] == "a dark castle, moonlight wrapped continuation line"
+
+
+FIXTURE_LOG = Path(__file__).parent / "fixtures" / "signed_log_excerpt.txt"
+
+
+def _extract_fixture(tmp_path):
+    out = tmp_path / "corpus.jsonl"
+    extract_corpus.extract(FIXTURE_LOG, out)
+    import json
+
+    return [json.loads(line) for line in out.read_text().splitlines()]
+
+
+@pytest.mark.req("REQ-DD-080")
+def test_extract_v2_metadata_fields(tmp_path):
+    rows = _extract_fixture(tmp_path)
+    by_source = {r["source_file"]: r for r in rows}
+    keeper = by_source["00101-111222333"]
+    assert keeper["local_model"] == "flux-hyp16-Q5_0"
+    assert keeper["seed"] == 111222333
+    assert keeper["size"] == "1360x792"
+    assert keeper["created"] == "2025-03-01T10:00:00+00:00"
+    armor = by_source["00202-444555666"]
+    assert armor["local_model"] == "autismmixSDXL_autismmixPony"
+    assert armor["seed"] == 444555666
+    unknown = by_source["unknown"]
+    assert unknown["local_model"] == "albedobaseXL_v21"
+    assert unknown["seed"] == 777888999
+
+
+@pytest.mark.req("REQ-DD-080")
+def test_dialect_derivation(tmp_path):
+    rows = _extract_fixture(tmp_path)
+    dialects = {r["source_file"]: r["dialect"] for r in rows}
+    assert dialects["00101-111222333"] == "prose"  # flux family
+    assert dialects["00202-444555666"] == "tags"  # Pony family + score_ negative
+    assert dialects["unknown"] == "tags"  # XL family
+    assert set(dialects.values()) <= {"prose", "tags"}
+    # score_-family negative forces tags even for a prose-family model
+    assert (
+        extract_corpus.derive_dialect("flux-hyp16-Q5_0", "score_5, score_4") == "tags"
+    )
+    assert extract_corpus.derive_dialect("flux-hyp16-Q5_0", "") == "prose"
+
+
+@pytest.mark.req("REQ-DD-081")
+def test_signed_blocks_excluded(tmp_path):
+    rows = _extract_fixture(tmp_path)
+    prompts = " ".join(r["prompt"] for r in rows)
+    assert len(rows) == 3
+    assert "signed duplicate payload" not in prompts
+    # stale-source hazard: a File block without parameters must not adopt
+    # the following Signed block's payload
+    assert "orphaned parameters payload" not in prompts
+
+
+@pytest.mark.req("REQ-DD-082")
+def test_ledger_source_ids_preserved():
+    """AC-07: every published source_file resolves against the live corpus."""
+    import json
+
+    from tools.corpus import row_id
+    from tools.ledger import read_ledger, used_source_ids
+
+    root = Path(__file__).parent.parent
+    rows = [
+        json.loads(line)
+        for line in (root / "prompts" / "corpus.jsonl").read_text().splitlines()
     ]
+    known = {r["source_file"] for r in rows} | {row_id(r) for r in rows}
+    used = used_source_ids(read_ledger(root / "state" / "published.jsonl"))
+    missing = {s for s in used if s not in known}
+    assert not missing, f"ledger ids missing from corpus: {sorted(missing)[:5]}"
+
+
+@pytest.mark.req("REQ-DD-082")
+def test_v1_prompts_preserved_in_v2():
+    """AC-06: v1 corpus (pinned at f90c14b, pre-regeneration) is a subset of
+    the live corpus by exact prompt text. Skipped on shallow clones."""
+    import json
+    import subprocess
+
+    root = Path(__file__).parent.parent
+    proc = subprocess.run(
+        ["git", "-C", str(root), "show", "f90c14b:prompts/corpus.jsonl"],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        pytest.skip("pinned v1 corpus commit unavailable (shallow clone)")
+    v1 = {json.loads(line)["prompt"] for line in proc.stdout.splitlines() if line}
+    v2 = {
+        json.loads(line)["prompt"]
+        for line in (root / "prompts" / "corpus.jsonl").read_text().splitlines()
+    }
+    missing = v1 - v2
+    assert not missing, f"{len(missing)} v1 prompts lost; e.g. {sorted(missing)[:1]}"
 
 
 @pytest.mark.req("REQ-DD-049")

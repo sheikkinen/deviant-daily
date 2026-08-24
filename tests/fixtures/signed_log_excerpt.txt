@@ -1,0 +1,55 @@
+==== File: 00101-111222333-A lighthouse keeper made of woven copper wire stand.png ====
+Image:
+  Filename: 00101-111222333-A lighthouse keeper made of woven copper wire stand.png
+  Format: PNG (Portable Network Graphics)
+  Geometry: 1360x792+0+0
+  Properties:
+    date:create: 2025-03-01T10:00:00+00:00
+    parameters: A lighthouse keeper made of woven copper wire standing
+on a basalt cliff, storm light threading the fog, painterly
+Steps: 20, Sampler: Euler, Schedule type: Simple, CFG scale: 1, Distilled CFG Scale: 3.5, Seed: 111222333, Size: 1360x792, Model hash: aa18ab0754, Model: flux-hyp16-Q5_0, Version: f2.0.1v
+    png:IHDR.bit_depth: 8
+==== File: 00202-444555666-score_9__masterpiece__1girl_silver_armor_moonlit.png ====
+Image:
+  Filename: 00202-444555666-score_9__masterpiece__1girl_silver_armor_moonlit.png
+  Format: PNG (Portable Network Graphics)
+  Geometry: 896x1152+0+0
+  Properties:
+    date:create: 2025-04-12T18:30:00+00:00
+    parameters: score_9, score_8_up, masterpiece, best quality, 1girl, silver armor, moonlit courtyard, flowing banner, detailed background
+Negative prompt: score_5, score_4
+Steps: 30, Sampler: DPM++ 2M SDE, Schedule type: Karras, CFG scale: 5, Seed: 444555666, Size: 896x1152, Model hash: 478f49e182, Model: autismmixSDXL_autismmixPony, Version: f2.0.1v
+    png:IHDR.bit_depth: 8
+==== Signed: 00101-111222333-A lighthouse keeper made of woven copper wire stand_signed.png ====
+Image:
+  Filename: 00101-111222333-A lighthouse keeper made of woven copper wire stand_signed.png
+  Format: PNG (Portable Network Graphics)
+  Properties:
+    date:create: 2025-03-01T10:05:00+00:00
+    parameters: A signed duplicate payload that must never reach the corpus output rows
+Steps: 20, Sampler: Euler, Seed: 111222333, Size: 1360x792, Model: flux-hyp16-Q5_0
+    png:IHDR.bit_depth: 8
+==== File: legacy-export-copper-garden.png ====
+Image:
+  Filename: legacy-export-copper-garden.png
+  Format: PNG (Portable Network Graphics)
+  Properties:
+    date:create: 2025-01-05T08:00:00+00:00
+    parameters: A clockwork garden where brass tulips open at dawn, dew of mercury beading on gear-petals, tilt-shift focus
+Steps: 25, Sampler: Euler a, Seed: 777888999, Size: 1024x1024, Model hash: 1234abcd, Model: albedobaseXL_v21, Version: f2.0.1v
+    png:IHDR.bit_depth: 8
+==== File: 00303-999888777-stripped-of-parameters.png ====
+Image:
+  Filename: 00303-999888777-stripped-of-parameters.png
+  Format: PNG (Portable Network Graphics)
+  Properties:
+    date:create: 2025-05-01T00:00:00+00:00
+    png:IHDR.bit_depth: 8
+==== Signed: 00303-999888777-stripped-of-parameters_signed.png ====
+Image:
+  Filename: 00303-999888777-stripped-of-parameters_signed.png
+  Properties:
+    date:create: 2025-05-01T00:05:00+00:00
+    parameters: An orphaned parameters payload that must never be attributed to a preceding file block
+Steps: 20, Sampler: Euler, Seed: 1, Size: 512x512, Model: flux-hyp16-Q5_0
+    png:IHDR.bit_depth: 8
