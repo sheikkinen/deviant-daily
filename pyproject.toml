@@ -16,7 +16,8 @@ dependencies = [
 dev = ["pytest", "ruff"]
 # FR-876 (yamlgraph): training-only extra — the publish pipeline never
 # imports torch (witnessed by tests/test_training_eval.py).
-training = ["torch"]
+# numpy: torch warns on every import without it (interop init).
+training = ["torch", "numpy"]
 
 [build-system]
 requires = ["setuptools>=68"]

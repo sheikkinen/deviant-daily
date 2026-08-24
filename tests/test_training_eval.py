@@ -36,6 +36,6 @@ def test_publish_modules_import_without_torch():
 
 def test_training_extra_declared():
     text = (REPO / "pyproject.toml").read_text()
-    assert 'training = ["torch"]' in text
+    assert 'training = ["torch", "numpy"]' in text
     base = text.split("[project.optional-dependencies]")[0]
     assert "torch" not in base
