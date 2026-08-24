@@ -1,10 +1,12 @@
-"""One-time corpus extraction from signed.log (FR-826 R-2, AC-04).
+"""Corpus extraction from signed.log (FR-826 R-2, AC-04; v2 metadata FR-883).
 
 Parses ImageMagick-identify style log entries (``==== File: <name> ====``),
 pulls the free text of each ``parameters:`` field (the generation prompt,
 ending before ``Steps:`` / ``Negative prompt:``), sanitizes it per the
 operator-approved redaction policy (2026-08-19), dedups, and writes
-``prompts/corpus.jsonl`` rows: ``{"prompt": ..., "source_file": basename}``.
+``prompts/corpus.jsonl`` v2 rows: ``{prompt, source_file, local_model,
+dialect, seed, size, created}``. ``==== Signed:`` duplicate blocks are
+excluded and reset parser state (FR-883 AC-04).
 
 Redaction policy (public by design — the raw corpus never is):
 - LoRA/weight syntax STRIPPED from kept prompts
@@ -29,10 +31,19 @@ NAME_BLOCKLIST = ["katja", "tuija", "nina"]
 TERM_BLOCKLIST = ["rape"]
 
 ENTRY_RE = re.compile(r"^==== File: (.+?) ====$")
+HEADER_RE = re.compile(r"^==== ")
 PARAMS_RE = re.compile(r"^\s{4}parameters: (.*)$")
-END_RE = re.compile(r"^(Steps: |Negative prompt: )")
+NEG_RE = re.compile(r"^Negative prompt: (.*)$")
+STEPS_RE = re.compile(r"^Steps: ")
+DATE_RE = re.compile(r"^\s{4}date:create: (\S+)")
 LORA_RE = re.compile(r"<(?:lora|lyco):[^>]*>", re.IGNORECASE)
 WEIGHT_RE = re.compile(r":\d+(?:\.\d+)?\)")
+# v2 metadata (FR-883): pulled from the Steps line and Properties block.
+MODEL_RE = re.compile(r"(?:^|, )Model: ([^,]+)")
+SEED_RE = re.compile(r"\bSeed: (\d+)")
+SIZE_RE = re.compile(r"\bSize: (\d+x\d+)")
+TAGS_MODEL_RE = re.compile(r"sdxl|pony|xl", re.IGNORECASE)
+SCORE_NEG_RE = re.compile(r"score_\d")
 # Mechanical scan patterns (AC-04: no paths, tokens, emails in output).
 # Token pattern excludes underscores: booru-style tag prompts are long
 # underscore_joined_words, not credentials.
@@ -63,31 +74,72 @@ def sanitize(prompt: str) -> str:
     return re.sub(r"\s+", " ", prompt).strip()
 
 
-def parse_entries(lines: list[str]) -> list[tuple[str, str]]:
-    """Yield (source_basename, raw_prompt) per ``==== File:`` entry."""
-    entries: list[tuple[str, str]] = []
-    source: str | None = None
+def derive_dialect(local_model: str, negative: str) -> str:
+    """Mechanical dialect rule (FR-883): Pony/SDXL family or score_-family
+    negative prompt ⇒ booru-tag dialect; everything else is prose."""
+    if local_model and TAGS_MODEL_RE.search(local_model):
+        return "tags"
+    if negative and SCORE_NEG_RE.search(negative):
+        return "tags"
+    return "prose"
+
+
+def parse_entries(lines: list[str]) -> list[dict]:
+    """Yield per-``==== File:`` entry dicts: source, prompt, negative,
+    meta (Steps line), created. Any ``====`` header resets state, so
+    ``==== Signed:`` blocks can never contribute or adopt a payload."""
+    entries: list[dict] = []
+    entry: dict | None = None
     buf: list[str] | None = None
+    neg: list[str] | None = None
+
+    def flush() -> None:
+        nonlocal entry, buf, neg
+        if entry is not None and buf is not None:
+            entry["prompt"] = " ".join(buf).strip()
+            entry["negative"] = " ".join(neg).strip() if neg else ""
+            entries.append(entry)
+        entry, buf, neg = None, None, None
+
     for line in lines:
-        m = ENTRY_RE.match(line)
-        if m:
-            source = Path(m.group(1).strip()).name
-            buf = None
+        if HEADER_RE.match(line):
+            flush()
+            m = ENTRY_RE.match(line)
+            if m:
+                entry = {
+                    "source": Path(m.group(1).strip()).name,
+                    "created": "",
+                    "meta": "",
+                }
             continue
-        if source is None:
+        if entry is None:
+            continue
+        dm = DATE_RE.match(line)
+        if dm and not entry["created"]:
+            entry["created"] = dm.group(1)
             continue
         pm = PARAMS_RE.match(line)
         if pm:
             buf = [pm.group(1)]
             continue
-        if buf is not None:
-            if END_RE.match(line) or line.startswith("    png:") or "====" in line:
-                entries.append((source, " ".join(buf)))
-                source, buf = None, None
-            else:
-                buf.append(line.strip())
-    if source and buf:
-        entries.append((source, " ".join(buf)))
+        if buf is None:
+            continue
+        nm = NEG_RE.match(line)
+        if nm:
+            neg = [nm.group(1)]
+            continue
+        if STEPS_RE.match(line):
+            entry["meta"] = line
+            flush()
+            continue
+        if line.startswith("    png:"):
+            flush()
+            continue
+        if neg is not None:
+            neg.append(line.strip())
+        else:
+            buf.append(line.strip())
+    flush()
     return entries
 
 
@@ -105,10 +157,12 @@ def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
         "duplicates": 0,
         "scan_hits": 0,
         "kept": 0,
+        "unknown": 0,
     }
     seen: set[str] = set()
     rows: list[dict] = []
-    for source, raw in entries:
+    for e in entries:
+        source, raw = e["source"], e["prompt"]
         prompt = sanitize(raw)
         if not prompt or len(prompt) < 10:
             stats["empty"] += 1
@@ -128,12 +182,27 @@ def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
         # the NNNNN-SEED id as provenance; it leaks nothing.
         id_match = re.match(r"^(\d+-\d+)", source)
         source_id = id_match.group(1) if id_match else "unknown"
-        row = {"prompt": prompt, "source_file": source_id}
+        meta = e["meta"]
+        mm = MODEL_RE.search(meta)
+        sm = SEED_RE.search(meta)
+        zm = SIZE_RE.search(meta)
+        local_model = mm.group(1).strip() if mm else ""
+        row = {
+            "prompt": prompt,
+            "source_file": source_id,
+            "local_model": local_model,
+            "dialect": derive_dialect(local_model, e["negative"]),
+            "seed": int(sm.group(1)) if sm else None,
+            "size": zm.group(1) if zm else "",
+            "created": e["created"],
+        }
         hits = [n for n, p in SCAN_PATTERNS.items() if p.search(json.dumps(row))]
         if hits:
             stats["scan_hits"] += 1
             print(f"SCAN EXCLUDED ({hits}): {source}", file=sys.stderr)
             continue
+        if source_id == "unknown":
+            stats["unknown"] += 1
         rows.append(row)
     stats["kept"] = len(rows)
 

@@ -31,6 +31,18 @@ requirements:
   - id: REQ-DD-049
     description: >
       Corpus extraction must reduce source filenames to their stable ID for the corpus JSON record.
+  - id: REQ-DD-080
+    description: >
+      Corpus v2 rows must carry local_model, seed, size, created, and a mechanically derived
+      dialect in {prose, tags} (Pony/SDXL-family model or score_-family negative prompt implies tags).
+  - id: REQ-DD-081
+    description: >
+      Signed-log parsing must exclude "==== Signed:" duplicate blocks and reset parser state on
+      any block header, so no payload is attributed to a preceding file entry.
+  - id: REQ-DD-082
+    description: >
+      Corpus regeneration must preserve every v1 prompt and every published ledger source id
+      (direct source_file or row_id match).
   - id: REQ-DD-050
     description: >
       Post Markdown rendering must produce the expected shape with title, paragraphs, quote, tag, deviation link, and model name.
