@@ -234,6 +234,102 @@ def test_v1_prompts_preserved_in_v2():
     assert not missing, f"{len(missing)} v1 prompts lost; e.g. {sorted(missing)[:1]}"
 
 
+@pytest.mark.req("REQ-DD-083")
+def test_strip_names_segment_forms():
+    """FR-884 AC-01/AC-02: name-bearing comma segments are dropped whole
+    (adjacent surname dies with the segment); clean segments survive."""
+    nre = extract_corpus.name_blocklist_re(extract_corpus.NAME_BLOCKLIST)
+    cleaned, n = extract_corpus.strip_names("portrait, nina1, red hair", nre)
+    assert cleaned == "portrait, red hair"
+    assert n == 1
+    cleaned, _ = extract_corpus.strip_names("katja_x, misty forest", nre)
+    assert cleaned == "misty forest"
+    cleaned, _ = extract_corpus.strip_names("Tuija's garden, wild roses", nre)
+    assert cleaned == "wild roses"
+    cleaned, _ = extract_corpus.strip_names(
+        "Nina Heikkinen, flowing red hair, oil painting", nre
+    )
+    assert "heikkinen" not in cleaned.lower()
+    assert cleaned == "flowing red hair, oil painting"
+    # no match => untouched, zero segments removed
+    cleaned, n = extract_corpus.strip_names("a castle at dusk, moonlight", nre)
+    assert cleaned == "a castle at dusk, moonlight"
+    assert n == 0
+
+
+@pytest.mark.req("REQ-DD-083")
+def test_strip_names_prose_sentence():
+    """FR-884 AC-01: comma-free prose strips at sentence boundaries."""
+    nre = extract_corpus.name_blocklist_re(extract_corpus.NAME_BLOCKLIST)
+    prose = "A quiet lakeside at dawn. Nina smiles warmly. Golden mist rises."
+    cleaned, n = extract_corpus.strip_names(prose, nre)
+    assert "nina" not in cleaned.lower()
+    assert "lakeside" in cleaned
+    assert "Golden mist rises." in cleaned
+    assert n == 1
+
+
+@pytest.mark.req("REQ-DD-083")
+def test_extract_recovers_stripped_rows(tmp_path):
+    """FR-884 AC-04/AC-05: recovered rows are counted, keep v2 metadata,
+    and kept == baseline_kept + name_recovered_rows; a name-only prompt
+    drops through the existing short/empty gate."""
+    log = tmp_path / "signed.log"
+    log.write_text(
+        "==== File: 00001-111.png ====\n"
+        "    parameters: a castle on a hill at midnight glowing\n"
+        "Steps: 20, Seed: 111, Size: 1360x792, Model: flux-hyp16-Q5_0\n"
+        "==== File: 00002-222.png ====\n"
+        "    parameters: portrait, nina1, flowing red hair, oil painting\n"
+        "Steps: 20, Seed: 222, Size: 1360x792, Model: flux-hyp16-Q5_0\n"
+        "==== File: 00003-333.png ====\n"
+        "    parameters: Nina Heikkinen\n"
+        "Steps: 20, Seed: 333, Size: 1360x792, Model: flux-hyp16-Q5_0\n"
+    )
+    out = tmp_path / "corpus.jsonl"
+    stats = extract_corpus.extract(log, out)
+    import json
+
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    prompts = {r["prompt"] for r in rows}
+    assert "portrait, flowing red hair, oil painting" in prompts
+    assert stats["name_candidates"] == 2
+    assert stats["name_recovered_rows"] == 1
+    assert stats["name_stripped_segments"] >= 2
+    assert stats["empty"] == 1  # name-only prompt strips to nothing
+    assert stats["kept"] == 2
+    recovered = next(r for r in rows if r["source_file"] == "00002-222")
+    assert recovered["seed"] == 222
+    assert recovered["size"] == "1360x792"
+    assert recovered["dialect"] == "prose"
+
+
+@pytest.mark.req("REQ-DD-084")
+def test_zero_leak_atomic_write(tmp_path):
+    """FR-884 AC-03: a seeded leak raises and leaves the destination
+    byte-for-byte unchanged, with no temp residue."""
+    nre = extract_corpus.name_blocklist_re(extract_corpus.NAME_BLOCKLIST)
+    out = tmp_path / "corpus.jsonl"
+    original = '{"prompt": "pre-existing safe corpus"}\n'
+    out.write_text(original)
+    leaking = [{"prompt": "portrait of nina, flowing red hair"}]
+    with pytest.raises(ValueError, match="leak"):
+        extract_corpus.write_corpus_atomic(leaking, out, nre)
+    assert out.read_text() == original
+    assert list(tmp_path.glob("*.tmp")) == []
+    # clean rows pass through and land atomically
+    extract_corpus.write_corpus_atomic([{"prompt": "a safe castle"}], out, nre)
+    assert "safe castle" in out.read_text()
+
+
+@pytest.mark.req("REQ-DD-084")
+def test_committed_corpus_zero_name_matches():
+    """FR-884 AC-07: the committed corpus contains zero blocklist matches."""
+    nre = extract_corpus.name_blocklist_re(extract_corpus.NAME_BLOCKLIST)
+    text = (Path(__file__).parent.parent / "prompts" / "corpus.jsonl").read_text()
+    assert not nre.search(text)
+
+
 @pytest.mark.req("REQ-DD-049")
 def test_source_file_reduced_to_id(tmp_path):
     log = tmp_path / "signed.log"
