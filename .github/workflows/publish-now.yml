@@ -15,6 +15,7 @@ on:
           - flux-2-flex
           - grok
           - nano-banana-2
+          - recraft
           - z-image
       date:
         description: "ISO date override (empty = today UTC)"

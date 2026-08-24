@@ -8,6 +8,10 @@ GET /models/xai/grok-imagine-image-2 returns the schema).
 flux-2-flex and nano-banana-2 added, both slugs verified by direct
 GET /models/<owner>/<name> and their params taken from the returned
 input schema enums.
+2026-08-24: recraft (recraft-ai/recraft-v4) added the same way —
+slug verified by direct GET, size enum from the input schema. Live
+generation witnessed webp output (RIFF magic); generate._ensure_png
+normalizes to PNG at the download boundary.
 Zero active models is a hard failure BEFORE any corpus draw or DA
 side effect — never a green skip.
 """
@@ -48,6 +52,12 @@ ACTIVE_MODELS: dict[str, dict] = {
     "grok": {
         "slug": "xai/grok-imagine-image-2",
         "params": {"aspect_ratio": "16:9", "resolution": "2k", "quality": "medium"},
+    },
+    "recraft": {
+        "slug": "recraft-ai/recraft-v4",
+        # schema offers size enum only (no output_format/resolution);
+        # 1344x768 matches z-image's 16:9 dims
+        "params": {"size": "1344x768"},
     },
 }
 

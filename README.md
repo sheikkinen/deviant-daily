@@ -51,6 +51,7 @@ exits idempotently. A post-publish commit failure fails the run as
 | flux-2-flex | `black-forest-labs/flux-2-flex` | active — 16:9, 2 MP, png |
 | nano-banana-2 | `google/nano-banana-2` | active — 16:9, 2K, png |
 | grok | `xai/grok-imagine-image-2` | active — 16:9, 2k, quality medium |
+| recraft | `recraft-ai/recraft-v4` | active — 1344×768 (16:9), webp→png at boundary |
 | flux-ultra | `black-forest-labs/flux-1.1-pro-ultra` | retired 2026-08-23 (superseded) |
 
 ## Workflows (FR-862)

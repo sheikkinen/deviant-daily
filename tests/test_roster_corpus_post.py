@@ -35,6 +35,8 @@ def test_roster_frozen_models():
     assert "flux-ultra" not in ACTIVE_MODELS
     assert ACTIVE_MODELS["flux-2-flex"]["slug"] == "black-forest-labs/flux-2-flex"
     assert ACTIVE_MODELS["nano-banana-2"]["slug"] == "google/nano-banana-2"
+    # recraft added 2026-08-24: collect generation data before per-model tuning
+    assert ACTIVE_MODELS["recraft"]["slug"] == "recraft-ai/recraft-v4"
     assert DISABLED_MODELS == {}
 
 
@@ -42,6 +44,33 @@ def test_roster_output_format_is_da_safe():
     """webp/jpg defaults are provider choices; DA submit needs png."""
     for name in ("flux-2-flex", "nano-banana-2"):
         assert ACTIVE_MODELS[name]["params"]["output_format"] == "png"
+
+
+def test_ensure_png_converts_webp(tmp_path):
+    """recraft-v4 has no output_format param and returns webp (witnessed
+    2026-08-24: RIFF magic on live generation); normalize at the download
+    boundary, not downstream."""
+    from PIL import Image
+
+    from tools.generate import _ensure_png
+
+    p = tmp_path / "img.png"
+    Image.new("RGB", (4, 4), "red").save(p, format="WEBP")
+    assert p.read_bytes()[:4] == b"RIFF"
+    _ensure_png(p)
+    assert p.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_ensure_png_leaves_png_untouched(tmp_path):
+    from PIL import Image
+
+    from tools.generate import _ensure_png
+
+    p = tmp_path / "img.png"
+    Image.new("RGB", (4, 4), "blue").save(p, format="PNG")
+    before = p.read_bytes()
+    _ensure_png(p)
+    assert p.read_bytes() == before
 
 
 @pytest.mark.req("REQ-DD-042")

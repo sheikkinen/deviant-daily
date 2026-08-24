@@ -32,8 +32,23 @@ def generate_image(prompt: str, model_config: dict, output_path: str | Path) -> 
         with out.open("wb") as f:
             for chunk in r.iter_bytes():
                 f.write(chunk)
+    _ensure_png(out)
     logger.info("generated %s (%d bytes)", out, out.stat().st_size)
     return str(out)
+
+
+def _ensure_png(path: Path) -> None:
+    """Normalize downloaded bytes to PNG at the boundary (DA submit needs png).
+
+    Models without an output_format param return webp (recraft-v4,
+    witnessed 2026-08-24).
+    """
+    if path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n":
+        return
+    from PIL import Image
+
+    Image.open(path).save(path, format="PNG")
+    logger.info("normalized %s to png", path)
 
 
 def _first_url(output) -> str:
