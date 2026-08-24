@@ -20,11 +20,17 @@ graph ([graph.yaml](graph.yaml)) — yamlgraph runs unattended; Python
 exists only for side effects ([tools/](tools/)). Governed by yamlgraph
 FR-826.
 
-## Corpus provenance (FR-826 R-2)
+## Corpus provenance (FR-826 R-2; v2 metadata FR-883)
 
 - **Source:** operator's local `signed.log` generation history
   (9,038 parsed entries; 13,682 raw log records)
-- **Kept:** 5,893 prompts after sanitization and dedup
+- **Kept:** 5,893 prompts after sanitization and dedup (1,937 rows keep
+  `source_file: unknown` — their raw basenames carry no generation id)
+- **v2 fields (FR-883):** `prompt, source_file, local_model, dialect,
+  seed, size, created`; `dialect ∈ {prose, tags}` derived mechanically
+  (Pony/SDXL-family model or `score_`-family negative prompt ⇒ tags) —
+  split: 3,329 prose / 2,564 tags. `==== Signed:` duplicate blocks are
+  excluded at parse time.
 - **Approval:** operator approved publication 2026-08-19
 - **Redaction policy** (blocklists live in
   [scripts/extract_corpus.py](scripts/extract_corpus.py)):

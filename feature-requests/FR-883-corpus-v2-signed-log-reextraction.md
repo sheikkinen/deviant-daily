@@ -2,7 +2,7 @@
 
 **Priority:** MEDIUM
 **Type:** Enhancement
-**Status:** Judged — APPROVED WITH REVISIONS (R-1..R-5 folded below)
+**Status:** Completed 2026-08-24 (enforced; see Implementation Record)
 **Effort:** 0.5 days
 **Requested:** 2026-08-24
 **First consumer / first event:** `tools/corpus.py` draw step, at the first
@@ -92,39 +92,39 @@ matches a v2 row — dedup history must survive regeneration.
 
 ## Acceptance Criteria (revised per judgement)
 
-- [ ] AC-01: The FR cites committed sanitized evidence
+- [x] AC-01: The FR cites committed sanitized evidence
       (`tests/fixtures/signed_log_excerpt.txt`) for the signed-log block
       shape, metadata fields, `==== Signed:` duplicate shape, and both
       dialect fingerprints; no raw private corpus data is committed.
-- [ ] AC-02: `python scripts/extract_corpus.py <signed.log>
+- [x] AC-02: `python scripts/extract_corpus.py <signed.log>
       prompts/corpus.jsonl` regenerates corpus v2 rows with keys `prompt`,
       `source_file`, `local_model`, `dialect`, `seed`, `size`, `created`,
       and prints stats including kept rows and residual unknown count.
-- [ ] AC-03: Every emitted row has `dialect ∈ {prose, tags}`; a
+- [x] AC-03: Every emitted row has `dialect ∈ {prose, tags}`; a
       `flux-hyp16` fixture row classifies as `prose`; an
       `autismmixSDXL_*` fixture row and/or a `score_\d`-negative row
       classifies as `tags`.
-- [ ] AC-04: `==== Signed:` blocks are excluded, with a fixture test
+- [x] AC-04: `==== Signed:` blocks are excluded, with a fixture test
       proving they produce no duplicate rows.
-- [ ] AC-05: The extractor preserves the v1 sanitization, blocklist,
+- [x] AC-05: The extractor preserves the v1 sanitization, blocklist,
       dedup, and source-id reduction behavior already covered by
       `scripts/extract_corpus.py` tests.
-- [ ] AC-06: Every prompt from the pre-change v1 `prompts/corpus.jsonl`
+- [x] AC-06: Every prompt from the pre-change v1 `prompts/corpus.jsonl`
       resolves in regenerated v2 by exact prompt text (verifier input:
       the pre-change `prompts/corpus.jsonl` at the commit before
       regeneration).
-- [ ] AC-07: Every non-empty `source_file` in committed
+- [x] AC-07: Every non-empty `source_file` in committed
       `state/published.jsonl` resolves against regenerated v2 by direct
       `source_file` match or `row_id(row)` match.
-- [ ] AC-08: For every retained row whose raw basename matches
+- [x] AC-08: For every retained row whose raw basename matches
       `^(\d+-\d+)`, `source_file` equals that reduced ID; residual
       `unknown` rows allowed only when the raw basename lacks that
       pattern; final residual count recorded in this FR.
-- [ ] AC-09: `tools/corpus.py` draw behavior unchanged: no dialect
+- [x] AC-09: `tools/corpus.py` draw behavior unchanged: no dialect
       filtering, no restyle policy, no change to `row_id()` semantics.
-- [ ] AC-10: README corpus provenance updated with corpus v2 fields and
+- [x] AC-10: README corpus provenance updated with corpus v2 fields and
       regenerated counts.
-- [ ] AC-11: Tests added for parser metadata extraction, dialect
+- [x] AC-11: Tests added for parser metadata extraction, dialect
       derivation, signed-block exclusion, v1 prompt preservation, and
       ledger source-id preservation; new tests carry
       `@pytest.mark.req(...)` markers and update the capability registry
@@ -164,3 +164,40 @@ Key corrections accepted by the author:
 - R-3 replaced a gameable threshold ("strictly below 1,937") with the
   mechanical basename→ID invariant.
 - R-1 replaced chat-session evidence with a committed sanitized fixture.
+
+## Implementation Record (2026-08-24)
+
+TDD trail: RED f459357 (fixture + 4 condemning tests,
+`logs/fr883-red.log`) → GREEN (extractor v2, `logs/fr883-green.log`);
+full suite green (`logs/fr883-full.log`).
+
+- AC-01 ✅ fixture `tests/fixtures/signed_log_excerpt.txt` (both dialect
+  fingerprints, Signed block, stale-source hazard block; invented prompts,
+  no raw corpus data).
+- AC-02 ✅ regenerated from operator-local
+  `~/Documents/deviant-working/signed.log`; stats: entries 9,038, kept
+  5,893 (deterministic match with v1), name_excluded 2,020,
+  term_excluded 69, duplicates 1,054, scan_hits 0, **unknown 1,937**.
+- AC-03 ✅ dialect split: prose 3,329 / tags 2,564; top models
+  flux-hyp16-Q5_0 (3,357), autismmixSDXL_autismmixPony (1,391).
+- AC-04 ✅ RED proved the stale-source bug live (a parameterless File
+  block adopted the following Signed block's payload); GREEN resets state
+  on every `====` header.
+- AC-05 ✅ v1 sanitize/blocklist/dedup/id-reduction tests unchanged and
+  green.
+- AC-06 ✅ 0 of 5,893 v1 prompts lost (verifier input: v1 corpus at
+  f90c14b, backed up pre-regeneration); permanent test pinned at f90c14b.
+- AC-07 ✅ 0 of 17 published ledger source ids missing.
+- AC-08 ✅ mechanical invariant holds; **residual unknown = 1,937,
+  unchanged from v1** — the raw basenames genuinely lack the
+  `^(\d+-\d+)` pattern, so there were never ids to recover. The FR's
+  original "recover generation ids" premise was wrong; R-3's invariant
+  framing exposed this honestly instead of letting a threshold hide it.
+- AC-09 ✅ `tools/corpus.py` untouched.
+- AC-10 ✅ README corpus provenance updated (v2 fields + counts).
+- AC-11 ✅ REQ-DD-080/081/082 added to CAP-09; all new tests req-marked.
+- Field coverage: created 5,893/5,893; seed missing on 1 row.
+
+Deviation from plan: none beyond AC-08's finding above. Coverage: 1 row
+lacks seed (its Steps line carries no Seed field) — left as `null` per
+schema.
