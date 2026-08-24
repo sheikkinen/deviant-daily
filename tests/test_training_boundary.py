@@ -71,8 +71,10 @@ def test_too_long_rejects():
 
 
 def test_midword_truncation_rejects():
-    sample = (_ok_sample()[:-40] + " truncated midwor").strip()
-    res = check_sample(sample, CORPUS)
+    """Truncation is generation-time truth: the sampler passes
+    ended=False when max tokens elapsed without <|end|> (text-only
+    detection would be a heuristic; the flag is the honest boundary)."""
+    res = check_sample(_ok_sample(), CORPUS, ended=False)
     assert res.verdict == "shape"
 
 
@@ -93,9 +95,8 @@ def test_passing_text_is_carried():
 
 def test_regexes_imported_not_duplicated():
     """AC-07: boundary reuses extract_corpus.py patterns."""
-    import training.boundary as tb
-
     import scripts.extract_corpus as ec
+    import training.boundary as tb
 
     assert tb.NAME_RE.pattern == ec.name_blocklist_re(ec.NAME_BLOCKLIST).pattern
     assert tb.SCAN_PATTERNS is ec.SCAN_PATTERNS

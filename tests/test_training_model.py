@@ -7,6 +7,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+# E402: importorskip must precede torch-dependent imports
 from training.model import CharTokenizer, TinyGPT  # noqa: E402
 from training.prepare import END_TOKEN, classify_register, prepare  # noqa: E402
 

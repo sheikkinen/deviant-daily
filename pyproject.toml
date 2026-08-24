@@ -14,6 +14,18 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
+# FR-876 (yamlgraph): training-only extra — the publish pipeline never
+# imports torch (witnessed by tests/test_training_eval.py).
+training = ["torch"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# flat-layout autodiscovery fails on posts/state/prompts; declare the
+# code packages so `pip install -e ".[training]"` works (FR-876 AC-11)
+packages = ["tools", "training"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
