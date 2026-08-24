@@ -1,0 +1,41 @@
+FF.F........                                                             [100%]
+=================================== FAILURES ===================================
+__________________________ test_roster_frozen_models ___________________________
+
+    def test_roster_frozen_models():
+        assert ACTIVE_MODELS["z-image"]["slug"] == "prunaai/z-image-turbo"
+        assert "grok" in ACTIVE_MODELS  # enabled 2026-08-19, slug xai/grok-imagine-image-2 (R-4)
+        assert ACTIVE_MODELS["grok"]["slug"] == "xai/grok-imagine-image-2"
+        # flux-ultra retired 2026-08-23 (flux-1.1-pro-ultra superseded)
+>       assert "flux-ultra" not in ACTIVE_MODELS
+E       AssertionError: assert 'flux-ultra' not in {'z-image': {'slug': 'prunaai/z-image-turbo', 'params': {'width': 1344, 'height': 768, 'guidance_scale': 0, 'num_infer...ok': {'slug': 'xai/grok-imagine-image-2', 'params': {'aspect_ratio': '16:9', 'resolution': '2k', 'quality': 'medium'}}}
+
+tests/test_roster_corpus_post.py:32: AssertionError
+_____________________ test_roster_output_format_is_da_safe _____________________
+
+    def test_roster_output_format_is_da_safe():
+        """webp/jpg defaults are provider choices; DA submit needs png."""
+        for name in ("flux-2-flex", "nano-banana-2"):
+>           assert ACTIVE_MODELS[name]["params"]["output_format"] == "png"
+                   ^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'flux-2-flex'
+
+tests/test_roster_corpus_post.py:41: KeyError
+_______________________ test_roster_drop_logs_structured _______________________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x108bbaba0>
+
+    def test_roster_drop_logs_structured(caplog):
+        import logging
+        with caplog.at_level(logging.WARNING):
+            usable = validate_roster(unavailable=["z-image"])
+>       assert "flux-2-flex" in usable
+E       AssertionError: assert 'flux-2-flex' in {'flux-ultra': {'slug': 'black-forest-labs/flux-1.1-pro-ultra', 'params': {'aspect_ratio': '16:9'}}, 'grok': {'slug': 'xai/grok-imagine-image-2', 'params': {'aspect_ratio': '16:9', 'resolution': '2k', 'quality': 'medium'}}}
+
+tests/test_roster_corpus_post.py:53: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  tools.roster:roster.py:56 roster: model=z-image dropped reason=unavailable
+=========================== short test summary info ============================
+FAILED tests/test_roster_corpus_post.py::test_roster_frozen_models - Assertio...
+FAILED tests/test_roster_corpus_post.py::test_roster_output_format_is_da_safe
+FAILED tests/test_roster_corpus_post.py::test_roster_drop_logs_structured - A...

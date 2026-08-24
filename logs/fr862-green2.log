@@ -1,0 +1,219 @@
+........................................................................ [ 59%]
+.FF.....................................F.FFFF..FF                       [100%]
+=================================== FAILURES ===================================
+__________________________ test_draw_resumes_same_day __________________________
+
+repo = PosixPath('/private/var/folders/dx/cygn8k4d4xd4fhnmrqs7z3vh0000gn/T/pytest-of-sheikki/pytest-215/test_draw_resumes_same_day0')
+tmp_path = PosixPath('/private/var/folders/dx/cygn8k4d4xd4fhnmrqs7z3vh0000gn/T/pytest-of-sheikki/pytest-215/test_draw_resumes_same_day0')
+
+    def test_draw_resumes_same_day(repo, tmp_path):
+        corpus = tmp_path / "corpus.jsonl"
+        corpus.write_text(json.dumps({"prompt": "p", "source_file": "s1"}))
+        entries = [
+            {"date": "2026-08-19", "status": "drawn", "prompt": "orig", "source_file": "sX"}
+        ]
+>       drawn = draw_prompt(corpus, entries, "2026-08-19")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ledger.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tools/corpus.py:41: in draw_prompt
+    existing = entry_for_slot(ledger_entries, date, slot)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+entries = [{'date': '2026-08-19', 'status': 'drawn', 'prompt': 'orig', 'source_file': 'sX'}]
+date = '2026-08-19', slot = 0
+
+    def entry_for_slot(entries: list[dict], date: str, slot: int = 0) -> dict | None:
+        """Latest ledger entry for one (date, slot) run, or None."""
+>       matching = [e for e in entries if e.get("date") == date and e["slot"] == slot]
+                                                                    ^^^^^^^^^
+E       KeyError: 'slot'
+
+tools/ledger.py:54: KeyError
+____________________ test_draw_terminal_day_reports_status _____________________
+
+tmp_path = PosixPath('/private/var/folders/dx/cygn8k4d4xd4fhnmrqs7z3vh0000gn/T/pytest-of-sheikki/pytest-215/test_draw_terminal_day_reports0')
+
+    def test_draw_terminal_day_reports_status(tmp_path):
+        corpus = tmp_path / "corpus.jsonl"
+        corpus.write_text(json.dumps({"prompt": "p", "source_file": "s1"}))
+        entries = [{"date": "2026-08-19", "status": "published", "source_file": "s1"}]
+>       drawn = draw_prompt(corpus, entries, "2026-08-19")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_ledger.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tools/corpus.py:41: in draw_prompt
+    existing = entry_for_slot(ledger_entries, date, slot)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+entries = [{'date': '2026-08-19', 'status': 'published', 'source_file': 's1'}]
+date = '2026-08-19', slot = 0
+
+    def entry_for_slot(entries: list[dict], date: str, slot: int = 0) -> dict | None:
+        """Latest ledger entry for one (date, slot) run, or None."""
+>       matching = [e for e in entries if e.get("date") == date and e["slot"] == slot]
+                                                                    ^^^^^^^^^
+E       KeyError: 'slot'
+
+tools/ledger.py:54: KeyError
+_____________________ test_workflow_exists[_pipeline.yml] ______________________
+
+name = '_pipeline.yml'
+
+    @pytest.mark.parametrize("name", ["_pipeline.yml", "daily.yml", "publish-now.yml"])
+    def test_workflow_exists(name):
+>       assert (WF / name).is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = (PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows') / '_pipeline.yml').is_file
+
+tests/test_workflows.py:32: AssertionError
+____________________ test_workflow_exists[publish-now.yml] _____________________
+
+name = 'publish-now.yml'
+
+    @pytest.mark.parametrize("name", ["_pipeline.yml", "daily.yml", "publish-now.yml"])
+    def test_workflow_exists(name):
+>       assert (WF / name).is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = (PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows') / 'publish-now.yml').is_file
+
+tests/test_workflows.py:32: AssertionError
+________________ test_both_callers_share_one_concurrency_group _________________
+
+    def test_both_callers_share_one_concurrency_group():
+>       daily, now = load("daily.yml"), load("publish-now.yml")
+                                        ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_workflows.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_workflows.py:22: in load
+    return yaml.safe_load((WF / name).read_text())
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows/publish-now.yml')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/Users/sheikki/Documents/src/deviant-daily/.github/workflows/publish-now.yml'
+
+/usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError
+___________________ test_both_callers_use_the_reusable_body ____________________
+
+    def test_both_callers_use_the_reusable_body():
+        for name in ("daily.yml", "publish-now.yml"):
+            jobs = load(name)["jobs"]
+>           assert [j["uses"] for j in jobs.values()] == [PIPELINE]
+                    ^^^^^^^^^
+E           KeyError: 'uses'
+
+tests/test_workflows.py:45: KeyError
+________________________ test_pipeline_is_callable_only ________________________
+
+    def test_pipeline_is_callable_only():
+>       assert "workflow_call" in triggers(load("_pipeline.yml"))
+                                           ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_workflows.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_workflows.py:22: in load
+    return yaml.safe_load((WF / name).read_text())
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows/_pipeline.yml')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/Users/sheikki/Documents/src/deviant-daily/.github/workflows/_pipeline.yml'
+
+/usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError
+_________________________ test_publish_now_input_shape _________________________
+
+    def test_publish_now_input_shape():
+>       inputs = triggers(load("publish-now.yml"))["workflow_dispatch"]["inputs"]
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_workflows.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_workflows.py:22: in load
+    return yaml.safe_load((WF / name).read_text())
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/Users/sheikki/Documents/src/deviant-daily/.github/workflows/publish-now.yml')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/Users/sheikki/Documents/src/deviant-daily/.github/workflows/publish-now.yml'
+
+/usr/local/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py:771: FileNotFoundError
+_________________ test_secrets_are_not_inlined_in_the_callers __________________
+
+    def test_secrets_are_not_inlined_in_the_callers():
+        for name in ("daily.yml", "publish-now.yml"):
+>           assert "secrets." not in (WF / name).read_text()
+E           AssertionError: assert 'secrets.' not in 'name: daily... anthropic\n'
+E             
+E             'secrets.' is contained here:
+E               OKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+E             ?           ++++++++
+E                         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+E                         DA_CLIENT_ID: ${{ secrets.DA_CLIENT_ID }}
+E                         DA_CLIENT_SECRET: ${{ secrets.DA_CLIENT_SECRET }}...
+E             
+E             ...Full output truncated (3 lines hidden), use '-vv' to show
+
+tests/test_workflows.py:75: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ledger.py::test_draw_resumes_same_day - KeyError: 'slot'
+FAILED tests/test_ledger.py::test_draw_terminal_day_reports_status - KeyError...
+FAILED tests/test_workflows.py::test_workflow_exists[_pipeline.yml] - Asserti...
+FAILED tests/test_workflows.py::test_workflow_exists[publish-now.yml] - Asser...
+FAILED tests/test_workflows.py::test_both_callers_share_one_concurrency_group
+FAILED tests/test_workflows.py::test_both_callers_use_the_reusable_body - Key...
+FAILED tests/test_workflows.py::test_pipeline_is_callable_only - FileNotFound...
+FAILED tests/test_workflows.py::test_publish_now_input_shape - FileNotFoundEr...
+FAILED tests/test_workflows.py::test_secrets_are_not_inlined_in_the_callers

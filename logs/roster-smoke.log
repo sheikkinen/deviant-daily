@@ -1,0 +1,8 @@
+2026-08-23 09:03:02,442 [INFO] httpx: HTTP Request: POST https://api.replicate.com/v1/models/black-forest-labs/flux-2-flex/predictions "HTTP/1.1 201 Created"
+2026-08-23 09:03:02,832 [INFO] httpx: HTTP Request: GET https://replicate.delivery/xezq/ZTZMHL5DbBKmFdTxen7LsWXgCs3gc9HW8quspjcXaOjKeDGXA/tmp26kcfel4.png "HTTP/1.1 200 OK"
+2026-08-23 09:03:03,368 [INFO] tools.generate: generated /tmp/smoke-flux-2-flex.img (3649858 bytes)
+2026-08-23 09:03:23,114 [INFO] httpx: HTTP Request: POST https://api.replicate.com/v1/models/google/nano-banana-2/predictions "HTTP/1.1 201 Created"
+2026-08-23 09:03:23,377 [INFO] httpx: HTTP Request: GET https://replicate.delivery/xezq/zSKseOsiJbwbciHdTrY5gNlqblZdylvIFRu45TbRMqdVeDGXA/tmpfbxcy980.png "HTTP/1.1 200 OK"
+2026-08-23 09:03:23,801 [INFO] tools.generate: generated /tmp/smoke-nano-banana-2.img (7775491 bytes)
+SMOKE flux-2-flex: 3649858 bytes, media=image/png
+SMOKE nano-banana-2: 7775491 bytes, media=image/png
