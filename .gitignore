@@ -11,3 +11,4 @@ outputs/
 training/ckpt/*
 !training/ckpt/calibration.json
 training/data/
+tmp/
