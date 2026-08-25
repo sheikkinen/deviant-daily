@@ -2,7 +2,8 @@
 
 **Priority:** HIGH
 **Type:** Feature
-**Status:** Judged — APPROVED WITH REVISIONS (2026-08-25), R-1…R-7 folded
+**Status:** Enforced (2026-08-25) — witnessed full run complete; see
+Implementation Record below.
 **Effort:** 1 day
 **Requested:** 2026-08-25
 **Depends on:** none (carved out of FR-886; FR-886 now depends on this)
@@ -226,3 +227,27 @@ never partial; a row is atomically classified or untouched.
 - Multi-label genre or a style/medium axis (single dominant label
   suffices for the named consumers; revisit only with a named consumer
   for the second axis).
+
+## Implementation Record (2026-08-25)
+
+- TDD: RED commit 37a1bdd (17 tests, REQ-DD-085..091), GREEN commit
+  with `estimate_cost`, `distribution_report`, `scripts/enrich_corpus.py`,
+  extractor `--existing-corpus` pass-through, CAP-14 registry entry.
+- Witnessed run (D-6, `logs/fingerprint_run_2026-08-25.json`):
+  - model `claude-haiku-4-5`, taxonomy v1, 2026-08-25
+  - 7,372 attempted calls (20 prior smoke rows skipped by resume
+    contract); estimate $7.37 vs $10 ceiling (C-1, operator-raised)
+  - **classified 7,392 / 7,392, unfingerprinted 0, rejections {} —
+    zero boundary rejections across 148 batches**
+  - genres: gothic 1327, fetish 1133, fantasy 1009, surreal 833,
+    mythological 631, scifi 559, pinup 511, portrait 495, fanart 473,
+    furry 325, other 96
+  - content: sexual mature 3440/7392 (46.5%), gore mature 590/7392 (8.0%)
+    — consistent with the R-1 seed-42 sample (17/40, 3/40)
+  - other-share 1.3% (C-4/C-6 gate <10% — no taxonomy audit required);
+    raw-read audit of sampled rows + `other` bucket confirmed residue,
+    not misrouted genres
+- Deviation: spend ceiling raised $5 → $10 by operator (2026-08-25)
+  after haiku-4-5 pricing put the full run at ~$7.4; original ~$3
+  summary estimate assumed retired haiku-3.5 prices.
+- No retries (C-5): unnecessary — zero failures.

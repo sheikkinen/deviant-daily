@@ -1,0 +1,38 @@
+{
+  "fr": "FR-890",
+  "date": "2026-08-25",
+  "model": "claude-haiku-4-5",
+  "taxonomy": "v1",
+  "attempted_calls": 7372,
+  "estimate_usd": 7.37,
+  "ceiling_usd": 10.0,
+  "rejections": {},
+  "report": {
+    "classified": 7392,
+    "unfingerprinted": 0,
+    "genres": {
+      "fanart": 473,
+      "scifi": 559,
+      "surreal": 833,
+      "portrait": 495,
+      "fetish": 1133,
+      "fantasy": 1009,
+      "gothic": 1327,
+      "pinup": 511,
+      "furry": 325,
+      "mythological": 631,
+      "other": 96
+    },
+    "content": {
+      "sexual": {
+        "safe": 3952,
+        "mature": 3440
+      },
+      "gore": {
+        "safe": 6802,
+        "mature": 590
+      }
+    },
+    "other_share": 0.012987012987012988
+  }
+}
