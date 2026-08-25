@@ -1,0 +1,45 @@
+name: Generation-failure logging
+id: CAP-15
+status: active
+description: >
+  FR-887 structured generation-failure logging: every image-generation
+  failure at the generate_step boundary is recorded as a typed,
+  committed row in state/failures.jsonl — model, prompt sha, failure
+  class, capped/redacted provider excerpt — then re-raised. Nothing is
+  swallowed; the knowledge stops being thrown away. Witnessed by
+  tests/test_failures.py.
+requirements:
+  - id: REQ-DD-092
+    description: >
+      A generation failure during generate_step appends and commits
+      exactly one FailureRecord row to state/failures.jsonl BEFORE the
+      original exception is re-raised; the run exits red.
+  - id: REQ-DD-093
+    description: >
+      Failure classification is a closed contract bound to exception
+      types (httpx.TimeoutException -> timeout, other httpx transport
+      errors -> transport, refusal keywords -> refusal, else unknown);
+      unrecognized failures stay unknown and the raw excerpt is always
+      preserved alongside the claim.
+  - id: REQ-DD-094
+    description: >
+      The FailureRecord schema is frozen: UTC ISO-8601 ts, sha256
+      prompt hash over exact prompt bytes, closed error_class and
+      run_source enums, provider excerpt capped with secret/credential
+      redaction; full prompt text is never committed.
+  - id: REQ-DD-095
+    description: >
+      The failure ledger is its own append-only artifact committed via
+      the commit_push git discipline; state/published.jsonl keeps its
+      status enum and resume semantics untouched, and successful
+      generations write no row.
+  - id: REQ-DD-096
+    description: >
+      A failure while writing or committing the failure row cannot
+      produce a success-shaped exit: the original generation exception
+      remains primary with the ledger failure attached as cause/note.
+  - id: REQ-DD-097
+    description: >
+      Non-corpus runs (run_source user|probe) carry null slot and
+      source_file, available for FR-888/FR-889 consumers without
+      implementing those FRs.
