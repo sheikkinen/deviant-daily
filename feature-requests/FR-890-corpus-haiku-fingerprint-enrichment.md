@@ -59,16 +59,16 @@ tie wins):
 
 | # | Class | Corpus evidence (keyword scan) |
 |---|-------|-------------------------------|
-| 1 | `bdsm_fetish` | bondage/rope/submissive/spanking — 16% |
-| 2 | `gothic_horror` | vampire/demon/satanic/succubus — 21%; gore/decay terms 9% |
-| 3 | `anthro_furry` | fox girl/wolf_girl/satyr/anthro — 8% |
-| 4 | `scifi_cyberpunk` | android/cyborg/biomechanical/neon — 10% |
+| 1 | `fetish` | bondage/rope/submissive/spanking — 16% |
+| 2 | `gothic` | vampire/demon/satanic/succubus — 21%; gore/decay terms 9% |
+| 3 | `furry` | fox girl/wolf_girl/satyr/anthro — 8% |
+| 4 | `scifi` | android/cyborg/biomechanical/neon — 10% |
 | 5 | `mythological` | goddess/Kali/Venus/valkyrie — 7% |
 | 6 | `fantasy` | sorceress/knight/angel/medieval — 17% |
-| 7 | `pinup_boudoir` | pin-up/boudoir/lingerie/vintage glamour — 10% |
-| 8 | `fanart_ip` | recognizable IP/celebrity likeness (Marvel, Disney, named persons) — ~1%, kept despite size because it is policy-relevant for image models |
-| 9 | `surreal_dreamscape` | dreamlike/floating/Beksiński-style abstraction |
-| 10 | `portrait_realism` | photographic/photoreal portrait without genre framing — photo terms 6% |
+| 7 | `pinup` | pin-up/boudoir/lingerie/vintage glamour — 10% |
+| 8 | `fanart` | recognizable IP/celebrity likeness (Marvel, Disney, named persons) — ~1%, kept despite size because it is policy-relevant for image models |
+| 9 | `surreal` | dreamlike/floating/Beksiński-style abstraction |
+| 10 | `portrait` | photographic/photoreal portrait without genre framing — photo terms 6% |
 | 11 | `other` | junk-drawer cap, see constraint C-6 |
 
 Precedence rationale: fetish and IP signals are routing/policy-relevant
