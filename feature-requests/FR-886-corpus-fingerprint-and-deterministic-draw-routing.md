@@ -2,13 +2,17 @@
 
 **Priority:** HIGH
 **Type:** Feature
-**Status:** Draft
+**Status:** Draft — blocked pending supply-side revision
 **Effort:** 1–2 days
 **Requested:** 2026-08-24
-**Depends on:** FR-885 (tolerance matrix — the supply side of the join)
+**Depends on:** FR-887/FR-888/FR-889 outcome evidence; FR-885 superseded
 **First consumer / first event:** the daily draw step, at the first
 scheduled run after merge — every drawn prompt is dispatched to a model
 measured to tolerate it, instead of a blind roster pick.
+
+**Revision required before judgement:** replace the FR-885 matrix contract below
+with the general outcome evidence produced by FR-887/FR-888/FR-889. Do not judge
+or enforce this draft while the stale matrix references remain.
 
 ## Summary
 

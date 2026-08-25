@@ -2,13 +2,27 @@
 
 **Priority:** MEDIUM
 **Type:** Feature
-**Status:** Judged — approved with revisions (R-1..R-5 folded)
+**Status:** Superseded — 2026-08-25 (do not enforce)
 **Effort:** 1 day
 **Requested:** 2026-08-24
 **First consumer / first event:** the operator, at the next roster
 decision — which models to keep, add, or route mature-leaning prompts
 away from. Second consumer (deferred, named): a draw-time routing FR
 that joins this matrix with corpus-side mature priors.
+
+## Supersession Record
+
+Operator direction on 2026-08-25 replaced this synthetic paid-probe path with
+three general capabilities: structured generation-failure logging (FR-887),
+generation fan-out across selected providers (FR-888), and verbatim user-given
+prompts (FR-889). Together they collect the same per-model refusal evidence from
+real operator/corpus prompts without a policy-preflight detour. FR-886 remains
+the routing consumer.
+
+Do not enforce this FR. The untracked drafts `data/policy_preflight.json` and
+`data/tolerance_probes.json` are not adopted deliverables and must not be used as
+authority. They are retained in the working tree only as forensic evidence until
+the operator decides their disposition.
 
 ## Summary
 
