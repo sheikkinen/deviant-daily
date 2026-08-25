@@ -156,9 +156,9 @@ def test_resume_skips_same_taxonomy_and_model():
 def test_estimate_cost_and_ceiling():
     est = estimate_cost(["x" * 400] * 100)
     assert est > 0
-    # full-corpus scale stays under the FR ceiling
+    # full-corpus scale stays under the FR ceiling ($10, operator-raised)
     full = estimate_cost(["x" * 400] * 7392)
-    assert full < 5.0
+    assert full < 10.0
     with pytest.raises(FingerprintError, match="ceiling"):
         estimate_cost(["x" * 400] * 7392, ceiling=full / 2)
 

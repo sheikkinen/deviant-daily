@@ -1,0 +1,45 @@
+name: Corpus fingerprint enrichment
+id: CAP-14
+status: active
+description: >
+  FR-890 corpus fingerprint enrichment: haiku classification of every
+  corpus prompt into content axes (sexual/gore: safe|mature) and an
+  11-genre taxonomy, merged additively with boundary validation, a
+  resume contract, a spend-ceiling guard, and extractor pass-through.
+  Witnessed by tests/test_corpus_fingerprint.py.
+requirements:
+  - id: REQ-DD-085
+    description: >
+      The taxonomy artifact `data/corpus_fingerprint_taxonomy.yaml` must
+      define exactly 11 uniquely named genres with precedences 1..11,
+      `other` demote-last, content axes limited to safe|mature, and a
+      semantic fixture per genre.
+  - id: REQ-DD-086
+    description: >
+      Classifier verdicts are claims validated at the boundary: refs,
+      sexual, gore, and genre values outside the closed set — and
+      duplicate refs — must be rejected with a counted reason, never
+      coerced.
+  - id: REQ-DD-087
+    description: >
+      The fingerprint merge is strictly additive: row order, count, and
+      prompt bytes are invariant; a classified row gains only `content`
+      and `fingerprint` keys; a failed row gains no keys.
+  - id: REQ-DD-088
+    description: >
+      The resume contract treats a row as classified only when its
+      fingerprint matches both the current taxonomy version and the
+      current model id.
+  - id: REQ-DD-089
+    description: >
+      A preflight cost estimate must exist and must raise before the
+      spend ceiling ($10, operator-raised 2026-08-25) would be exceeded.
+  - id: REQ-DD-090
+    description: >
+      A distribution report must expose classified/unfingerprinted
+      counts, per-genre counts, content-axis counts, and other-share.
+  - id: REQ-DD-091
+    description: >
+      Corpus re-extraction must inherit fingerprints keyed by
+      (row_id, exact prompt); a changed prompt must never inherit a
+      stale classification.

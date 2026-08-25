@@ -20,7 +20,9 @@ haiku-class calls and commits three additive columns per row:
 2. `content.gore`: `safe | mature`
 3. `genre`: single-label closed-set image classification (list below)
 
-One shot per prompt, structured output (Pydantic), resumable, ~$3.
+One shot per prompt, structured output (Pydantic), resumable, ~$8
+(haiku-4-5 pricing; original ~$3 estimate assumed retired haiku-3.5
+prices — operator raised the ceiling to $10, 2026-08-25).
 This FR owns the taxonomy; FR-886's router consumes it (FR-885 is
 superseded and is not referenced).
 
@@ -146,7 +148,7 @@ never partial; a row is atomically classified or untouched.
   classifier model id.
 - **Cost controls (R-6):** preflight dry-run prints estimated call
   count × per-call price for the selected model id and the projected
-  total; a hard stop aborts before the $5 ceiling based on attempted
+  total; a hard stop aborts before the $10 ceiling based on attempted
   calls (tested with a mock counter).
 - **Extractor pass-through (R-5):** `scripts/extract_corpus.py` gains
   `--existing-corpus <path>`; rows merged by `source_file` +
@@ -182,7 +184,7 @@ never partial; a row is atomically classified or untouched.
   the same taxonomy version and classifier model id, resumes
   unclassified rows, and records classified/unfingerprinted counts.
 - [ ] AC-07: The live run has a preflight cost estimate and a tested
-  stop-before-$5 guard keyed to attempted calls; no classifier retry
+  stop-before-$10 guard keyed to attempted calls; no classifier retry
   is attempted for a failed row.
 - [ ] AC-08: `scripts/extract_corpus.py` preserves fingerprint fields
   from an existing corpus by the merge key during re-extraction, with
@@ -199,7 +201,8 @@ never partial; a row is atomically classified or untouched.
 
 ## Constraints
 
-- C-1: Spend ceiling $5; stop before exceeding.
+- C-1: Spend ceiling $10 (operator-raised from $5, 2026-08-25); stop
+  before exceeding.
 - C-2: Haiku-class model only; classifier model id recorded per row.
 - C-3: Columns additive only; no row mutation or reordering.
 - C-4: This FR owns the taxonomy artifact; FR-886 imports it — no

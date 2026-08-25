@@ -114,6 +114,54 @@ def is_classified(row: dict, tax: dict, model: str) -> bool:
     )
 
 
+# claude-haiku-4-5 list prices (USD per Mtok) and template overhead.
+PRICE_IN_PER_MTOK = 1.0
+PRICE_OUT_PER_MTOK = 5.0
+TEMPLATE_TOKENS = 700  # rendered taxonomy rules + instructions
+OUT_TOKENS = 40  # structured verdict
+CEILING_USD = 10.0  # FR-890 C-1 (operator-raised from $5, 2026-08-25)
+
+
+def estimate_cost(
+    prompts: list[str],
+    ceiling: float = CEILING_USD,
+    price_in: float = PRICE_IN_PER_MTOK,
+    price_out: float = PRICE_OUT_PER_MTOK,
+) -> float:
+    """Preflight estimate (AC-07); raises before the ceiling is exceeded."""
+    in_tokens = sum(TEMPLATE_TOKENS + len(p) / 4 for p in prompts)
+    out_tokens = OUT_TOKENS * len(prompts)
+    cost = (in_tokens * price_in + out_tokens * price_out) / 1e6
+    if cost >= ceiling:
+        raise FingerprintError(
+            f"projected cost ${cost:.2f} reaches ceiling ${ceiling:.2f} "
+            f"({len(prompts)} calls) — refusing to start"
+        )
+    return cost
+
+
+def distribution_report(rows: list[dict]) -> dict:
+    """Genre × sexual × gore distribution + counts (AC-09)."""
+    genres: dict[str, int] = {}
+    content = {"sexual": {"safe": 0, "mature": 0}, "gore": {"safe": 0, "mature": 0}}
+    classified = 0
+    for row in rows:
+        fp = row.get("fingerprint")
+        if not fp:
+            continue
+        classified += 1
+        genres[fp["genre"]] = genres.get(fp["genre"], 0) + 1
+        for axis in ("sexual", "gore"):
+            content[axis][row["content"][axis]] += 1
+    return {
+        "classified": classified,
+        "unfingerprinted": len(rows) - classified,
+        "genres": genres,
+        "content": content,
+        "other_share": (genres.get("other", 0) / classified) if classified else 0.0,
+    }
+
+
 # ── Graph tools (graphs/corpus_fingerprint.yaml) ──────────────────────
 
 

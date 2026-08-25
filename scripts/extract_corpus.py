@@ -124,6 +124,30 @@ def derive_dialect(local_model: str, negative: str) -> str:
     return "prose"
 
 
+def merge_existing_fingerprints(
+    new_rows: list[dict], old_rows: list[dict]
+) -> list[dict]:
+    """Inherit fingerprints across re-extraction (FR-890 AC-08).
+
+    Key = (row_id, exact prompt bytes): a changed prompt must never
+    inherit a stale classification. Additive keys only.
+    """
+    from tools.corpus import row_id
+
+    index = {
+        (row_id(old), old["prompt"]): old
+        for old in old_rows
+        if "fingerprint" in old and "content" in old
+    }
+    merged = []
+    for row in new_rows:
+        old = index.get((row_id(row), row["prompt"]))
+        if old is not None:
+            row = {**row, "content": old["content"], "fingerprint": old["fingerprint"]}
+        merged.append(row)
+    return merged
+
+
 def parse_entries(lines: list[str]) -> list[dict]:
     """Yield per-``==== File:`` entry dicts: source, prompt, negative,
     meta (Steps line), created. Any ``====`` header resets state, so
@@ -183,7 +207,9 @@ def parse_entries(lines: list[str]) -> list[dict]:
     return entries
 
 
-def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
+def extract(
+    log_path: Path, out_path: Path, sample_n: int = 0, existing: Path | None = None
+) -> dict:
     lines = log_path.read_text(errors="replace").splitlines()
     entries = parse_entries(lines)
     name_re = name_blocklist_re(NAME_BLOCKLIST)
@@ -267,6 +293,15 @@ def extract(log_path: Path, out_path: Path, sample_n: int = 0) -> dict:
         admit(e, p, recovered=True)
     stats["kept"] = len(rows)
 
+    if existing is not None and existing.exists():
+        old_rows = [
+            json.loads(line)
+            for line in existing.read_text().splitlines()
+            if line.strip()
+        ]
+        rows = merge_existing_fingerprints(rows, old_rows)
+        stats["fingerprints_inherited"] = sum(1 for r in rows if "fingerprint" in r)
+
     write_corpus_atomic(rows, out_path, name_re)
 
     if sample_n:
@@ -284,8 +319,14 @@ def main() -> None:
     ap.add_argument("log", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--sample", type=int, default=0)
+    ap.add_argument(
+        "--existing-corpus",
+        type=Path,
+        default=None,
+        help="prior corpus.jsonl whose fingerprints carry over by (row_id, prompt)",
+    )
     args = ap.parse_args()
-    stats = extract(args.log, args.out, args.sample)
+    stats = extract(args.log, args.out, args.sample, args.existing_corpus)
     print(json.dumps(stats, indent=2))
 
 
