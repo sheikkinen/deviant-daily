@@ -96,7 +96,7 @@ with failures recorded.
   pinned models pass through to the generation boundary.
 - [x] AC-07: Repeated or multi-model invocations in one command cannot
   clobber outputs; tests assert the exact output path shape.
-- [ ] AC-08 (deferred to FR-888): If `--all-models`/`--models` is implemented with this FR,
+- [x] AC-08 (delivered by FR-888 enforcement, 2026-08-25): If `--all-models`/`--models` is implemented with this FR,
   it delegates to the enforced FR-888 fan-out primitive and satisfies
   FR-888's ordered preflight, sequential execution, distinct output
   path, failure-ledger, and no-publish gates.

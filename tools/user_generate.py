@@ -14,6 +14,7 @@ import subprocess
 from pathlib import Path
 
 from tools import steps
+from tools.fanout import generate_all
 from tools.inputs import parse_date, parse_model
 from tools.roster import choose_model
 
@@ -27,8 +28,15 @@ def parse_args(argv=None) -> argparse.Namespace:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--prompt", help="prompt text, passed verbatim")
     group.add_argument("--prompt-file", help="UTF-8 file whose contents pass verbatim")
-    parser.add_argument(
+    models = parser.add_mutually_exclusive_group()
+    models.add_argument(
         "--model", default="", help="roster model name (default: random)"
+    )
+    models.add_argument(
+        "--models", help="comma-separated roster subset (FR-888 fan-out)"
+    )
+    models.add_argument(
+        "--all-models", action="store_true", help="fan out over every active model"
     )
     parser.add_argument("--date", default="", help="YYYY-MM-DD (default: today)")
     parser.add_argument("--out-dir", default="outputs", help="output directory")
@@ -42,10 +50,18 @@ def read_prompt(args: argparse.Namespace) -> str:
     return Path(args.prompt_file).read_bytes().decode("utf-8")
 
 
-def main(argv=None, runner=subprocess.run) -> str:
+def main(argv=None, runner=subprocess.run):
     args = parse_args(argv)
     prompt = read_prompt(args)
     date = parse_date(args.date)
+    if args.all_models or args.models:
+        # FR-888 composition: delegation only — the primitive owns
+        # preflight, ordering, output identity, and failure semantics.
+        selection = None if args.all_models else args.models.split(",")
+        outcomes = generate_all(prompt, date, selection, args.out_dir, runner=runner)
+        for outcome in outcomes:
+            print(f"{outcome.model}: {outcome.status} {outcome.path or ''}")
+        return outcomes
     # Resolve the model up front so the output path names it (R-2).
     model_name, _ = choose_model(name=parse_model(args.model))
     out_path = Path(args.out_dir) / f"{date}-user-{model_name}.png"

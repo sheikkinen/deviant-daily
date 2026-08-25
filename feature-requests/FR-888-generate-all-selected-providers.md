@@ -2,7 +2,7 @@
 
 **Priority:** HIGH
 **Type:** Feature
-**Status:** Judged — APPROVED WITH REVISIONS (2026-08-25); R-1..R-6 folded below
+**Status:** Enforced 2026-08-25 — all ACs green; see Implementation Record
 **Effort:** 0.5–1 day
 **Requested:** 2026-08-25
 **Depends on:** FR-887 (failure rows are the point of the exercise —
@@ -73,39 +73,39 @@ roster prices, replacing FR-885's synthetic probe harness.
 
 *(Revised per judgement — supersedes the draft AC-1..AC-5.)*
 
-- [ ] AC-01: A mocked fan-out over three valid active roster models
+- [x] AC-01: A mocked fan-out over three valid active roster models
   where model 2 raises a provider refusal generates outputs for models
   1 and 3, appends exactly one `state/failures.jsonl` row with
   `run_source="probe"`, and returns three ordered `GenerationOutcome`
   values.
-- [ ] AC-02: All-models selection resolves to every usable active
+- [x] AC-02: All-models selection resolves to every usable active
   roster model in deterministic order before generation begins.
-- [ ] AC-03: Explicit subset selection honors the specified
+- [x] AC-03: Explicit subset selection honors the specified
   deterministic order; any unknown model name fails before the first
   provider call or file write and reports the valid active list.
-- [ ] AC-04: Duplicate model names in an explicit subset fail fast
+- [x] AC-04: Duplicate model names in an explicit subset fail fast
   before generation.
-- [ ] AC-05: Fan-out writes no rows to `state/published.jsonl`, calls
+- [x] AC-05: Fan-out writes no rows to `state/published.jsonl`, calls
   no `tools.da_api` function, and consumes no slot; mocked tests fail
   if any DeviantArt publish path is touched.
-- [ ] AC-06: Each successful selected model writes to a distinct output
+- [x] AC-06: Each successful selected model writes to a distinct output
   path derived from `(out_dir, date, model_name)`; a test proves two
   successful models cannot clobber each other.
-- [ ] AC-07: If failure-ledger append/commit fails for a model failure,
+- [x] AC-07: If failure-ledger append/commit fails for a model failure,
   the fan-out run exits red with the original provider failure and the
   ledger failure both inspectable; it does not continue and does not
   return a success-shaped outcome list.
-- [ ] AC-08: `GenerationOutcome` is typed and includes model name,
+- [x] AC-08: `GenerationOutcome` is typed and includes model name,
   slug, status, and exactly one of output path or `FailureRecord`;
   tests assert one outcome per selected model when ledger writes
   succeed.
-- [ ] AC-09: Operator CLI documentation and tests are present only when
+- [x] AC-09: Operator CLI documentation and tests are present only when
   an enforced entry point exists; FR-889 not yet enforced → this FR
   documents the callable fan-out primitive and explicitly defers CLI
   activation.
-- [ ] AC-10: New `REQ-DD` ids are added to a capability file, and every
+- [x] AC-10: New `REQ-DD` ids are added to a capability file, and every
   new/changed test carries `@pytest.mark.req(...)` linked to those ids.
-- [ ] AC-11: README documents the comparison workflow, output
+- [x] AC-11: README documents the comparison workflow, output
   directory/path shape, failure-row behavior, no-publish boundary, and
   the dependency relationship with FR-889.
 
@@ -126,3 +126,21 @@ roster prices, replacing FR-885's synthetic probe harness.
 - Publishing fan-out outputs (operator picks manually if desired).
 - Cost caps/budget tracking (spend is operator-visible per run).
 - Parallel execution.
+
+## Implementation Record (2026-08-25)
+
+- `tools/fanout.py` (new): typed `GenerationOutcome` (exactly-one-of
+  path|failure enforced by model validator), `resolve_models` /
+  `resolve_configs` preflight (roster order for all-models, given order
+  for subsets, duplicates and unknowns fail fast with the valid list),
+  `generate_all` sequential loop — failed outcome only after committed
+  `run_source="probe"` row; ledger commit failure aborts red via
+  `raise exc from ledger_exc` + note.
+- `tools/user_generate.py`: `--all-models`/`--models` wired by
+  delegation only, mutually exclusive with `--model`; delivers FR-889
+  AC-08.
+- `capabilities/CAP-17-provider-fanout.yaml`: REQ-DD-103..109;
+  `tests/test_fanout.py` 10 tests; full suite 247 passed;
+  `req_coverage --strict` green.
+- Deviation: none — no parallelism, no publish coupling, no roster
+  changes.

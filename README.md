@@ -86,9 +86,22 @@ VERBATIM to the provider (`--prompt-file` is strict UTF-8, all
 newlines preserved; invalid UTF-8 fails before any provider call).
 Output lands at `<out_dir>/<date>-user-<model>.png`. A refusal
 becomes a committed `state/failures.jsonl` row with
-`run_source="user"` and the run stays red. FR-888 fan-out flags
-(`--all-models`/`--models`) activate when FR-888's primitive is
-enforced — not yet wired.
+`run_source="user"` and the run stays red.
+
+### Fan-out comparison (FR-888)
+
+```bash
+python scripts/generate.py --prompt "text" --all-models
+python scripts/generate.py --prompt "text" --models grok,z-image
+```
+
+Sequentially runs the same prompt through every active roster model
+(or the given subset, in the given order — unknown or duplicate names
+fail before the first provider call). Each model writes
+`<out_dir>/<date>-<model>.png`; a refusal becomes a committed
+`run_source="probe"` failure row and the remaining models still run.
+Same no-publish boundary as above. `--model`, `--models`, and
+`--all-models` are mutually exclusive.
 
 ## Model roster (FR-826 R-4, frozen)
 
