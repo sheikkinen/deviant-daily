@@ -5,8 +5,10 @@
 **Status:** Draft — blocked pending supply-side revision
 **Effort:** 1–2 days
 **Requested:** 2026-08-24
-**Depends on:** FR-890 (corpus fingerprint enrichment — carved out
-2026-08-25); FR-887/FR-888/FR-889 outcome evidence; FR-885 superseded
+**Depends on:** FR-890 (corpus fingerprint enrichment — **DONE
+2026-08-25**, 7392/7392 rows enriched); FR-887 (judged 2026-08-25,
+approved with revisions) / FR-888 / FR-889 outcome evidence; FR-885
+superseded
 **First consumer / first event:** the daily draw step, at the first
 scheduled run after merge — every drawn prompt is dispatched to a model
 measured to tolerate it, instead of a blind roster pick.
