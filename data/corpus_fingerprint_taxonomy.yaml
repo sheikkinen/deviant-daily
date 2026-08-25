@@ -1,0 +1,168 @@
+# FR-890 corpus fingerprint taxonomy — single source of truth (AC-02).
+# FR-886's router imports this artifact; nothing redeclares it.
+# Evidence: feature-requests/FR-890-evidence.md (seed-42 raw read).
+taxonomy: v1
+
+content:
+  # Classification is over PROMPT TEXT ONLY. Independent of DeviantArt's
+  # image-maturity enum (tools/gate.py consumes image-derived values).
+  # Language, ideology, and non-visual themes are out of scope.
+  sexual:
+    values: [safe, mature]
+    mature_iff: >
+      The prompt requests nudity, explicit anatomy, sexual acts, or
+      explicit-erotica directives (booru rating_explicit, "erotica",
+      "nude", explicit anatomy terms). Nudity is subsumed here — there
+      is no separate nudity axis.
+    safe_note: >
+      Suggestive-but-clothed (curves, lingerie-as-costume, cleavage)
+      is safe.
+  gore:
+    values: [safe, mature]
+    mature_iff: >
+      The prompt requests graphic violence, blood, wounds,
+      dismemberment, or body horror as depicted content.
+    safe_note: >
+      Aesthetic decay (gothic atmosphere, skeletal architecture,
+      tattered cloth) is safe.
+
+# Single label, dominant theme. Precedence resolves overlaps: on tie,
+# the LOWEST precedence number wins. `other` is demote-last at the
+# boundary: permitted only when no concrete label's inclusion rules
+# match ("choose the most specific non-other label").
+genres:
+  - name: fetish
+    precedence: 1
+    include: >
+      Bondage, rope/shibari, BDSM framing, submissive/dominant poses,
+      restraint as subject.
+    exclude: >
+      Lingerie or leather as mere costume without restraint/power
+      framing (pinup).
+    fixture:
+      prompt: "Surreal Bondage Dreamscape. 1girl, elegant_lingerie, stockings, gloves, lace_collar, dreamlike_landscape, floating_bondage, ethereal_lighting, surreal_elements, glowing_orbs"
+      genre: fetish
+      sexual: mature
+      gore: safe
+  - name: gothic
+    precedence: 2
+    include: >
+      Vampires, demons, succubi, satanic/occult horror, dark decayed
+      atmospheres with supernatural dread.
+    exclude: >
+      Named-IP characters (fanart); restraint as subject (fetish).
+    fixture:
+      prompt: "kneeling female vampire, grave, passion, mischief, by milo manara and Akira Toriyama erotica, dynamic action"
+      genre: gothic
+      sexual: mature
+      gore: safe
+  - name: furry
+    precedence: 3
+    include: >
+      Anthropomorphic animal characters: fox/wolf/bunny girls, satyrs,
+      felines, avians — animal traits on the subject.
+    exclude: >
+      Ordinary animal companions beside a human subject.
+    fixture:
+      prompt: "A fiery-furred anthropomorphic fox girl with amber eyes glinting in the golden morning light stands amidst a wild forest"
+      genre: furry
+      sexual: safe
+      gore: safe
+  - name: scifi
+    precedence: 4
+    include: >
+      Androids, cyborgs, biomechanical fusion, cyberpunk cities,
+      holograms, futuristic technology as the frame.
+    exclude: >
+      Restraint as subject (fetish); named IP (fanart).
+    fixture:
+      prompt: "Female android cyborg being repaired in a futuristic workshop, detailed sketch style, charcoal drawing, high contrast, mechanical details"
+      genre: scifi
+      sexual: safe
+      gore: safe
+  - name: mythological
+    precedence: 5
+    include: >
+      Named deities and myth figures (Kali, Venus, Legba, valkyries),
+      religious/mythic iconography as the subject.
+    exclude: >
+      Generic angels/demons without a myth-system anchor (fantasy or
+      gothic).
+    fixture:
+      prompt: "Kali's Dance of Destruction. A captivating scene where Kali, the goddess of destruction, dances wildly amidst a whirlwind of severed heads and swirling ashes."
+      genre: mythological
+      sexual: safe
+      gore: mature
+  - name: fantasy
+    precedence: 6
+    include: >
+      Sorceresses, knights, angels, elves, orcs, medieval/epic
+      settings, magic. The widest net — deliberately late.
+    exclude: >
+      Myth-system deities (mythological); supernatural horror (gothic).
+    fixture:
+      prompt: "A powerful female knight kneeling in a blood-soaked battlefield, holding a glowing sword, crimson stains dripping from her armor"
+      genre: fantasy
+      sexual: safe
+      gore: mature
+  - name: pinup
+    precedence: 7
+    include: >
+      Glamour/boudoir framing, vintage pin-up, fine-art nude or
+      fashion-photography styling where allure is the subject.
+    exclude: >
+      Restraint (fetish); anthro subjects (furry).
+    fixture:
+      prompt: "A vintage 1920s pin-up photograph of a seductive blonde with wild, frizzy curls cascading over her bare shoulders. She reclines on silk sheets in an Art Deco boudoir"
+      genre: pinup
+      sexual: mature
+      gore: safe
+  - name: fanart
+    precedence: 8
+    include: >
+      Recognizable IP or celebrity likeness: Marvel/DC, Disney, named
+      film/game characters, named real persons. Policy-relevant
+      regardless of small corpus share.
+    exclude: >
+      Style-only artist references (by Manara, Newton) — style is not
+      IP subject.
+    fixture:
+      prompt: "Daisy Duck's Glamorous Makeover. A captivating scene inspired by Daisy Duck's glamorous makeover. Daisy is adorned in a luxurious, elegant gown"
+      genre: fanart
+      sexual: safe
+      gore: safe
+  - name: surreal
+    precedence: 9
+    include: >
+      Dream-logic, floating abstraction, Beksinski-style wastelands,
+      spectral figures where unreality is the frame.
+    exclude: >
+      Genre scenes with one surreal accent (classify by the scene).
+    fixture:
+      prompt: "in style of Zdzislaw Beksinski: A haunting female figure standing in a desolate wasteland, her elongated form shrouded in tattered cloth, skeletal architecture"
+      genre: surreal
+      sexual: safe
+      gore: safe
+  - name: portrait
+    precedence: 10
+    include: >
+      Portrait or figure study without genre framing: photographic,
+      charcoal, or painterly subject-first composition.
+    exclude: >
+      Any concrete genre frame above.
+    fixture:
+      prompt: "close-up portrait of young poet's face channeling divine inspiration, tears of creative agony streaming down cheeks"
+      genre: portrait
+      sexual: safe
+      gore: safe
+  - name: other
+    precedence: 11
+    include: >
+      Nothing above matches. Junk-drawer cap (FR-890 C-6): demote-last;
+      a witnessed run with other > 10% is not committable.
+    exclude: ""
+    fixture:
+      prompt: "abstract geometric color field, no figure, no setting, no genre signal"
+      genre: other
+      sexual: safe
+      gore: safe

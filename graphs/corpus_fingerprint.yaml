@@ -1,0 +1,72 @@
+version: "1.0"
+name: corpus_fingerprint
+description: FR-890 batch corpus prompt fingerprint classification via haiku map fan-out.
+prompts_dir: prompts
+
+state:
+  batch_file: str
+  results_file: str
+  batch: any
+  verdicts: list
+  saved: any
+
+tools:
+  load_batch:
+    type: python
+    module: tools.fingerprint
+    function: load_batch
+    description: Load a corpus fingerprint batch and taxonomy prompt context.
+  save_results:
+    type: python
+    module: tools.fingerprint
+    function: save_results
+    description: Persist raw corpus fingerprint verdicts as JSON.
+
+nodes:
+  load:
+    type: tool_call
+    tool: load_batch
+    args:
+      batch_file: "{state.batch_file}"
+    state_key: batch
+    on_error: fail
+
+  classify:
+    type: map
+    over: "{state.batch.result.items}"
+    as: item
+    max_items: 100
+    node:
+      type: llm
+      prompt: corpus_fingerprint
+      provider: anthropic
+      model: claude-haiku-4-5
+      temperature: 0.0
+      state_key: verdict
+      variables:
+        ref: "{state.item.ref}"
+        prompt: "{state.item.prompt}"
+        taxonomy_rules: "{state.batch.result.taxonomy_rules}"
+        genre_list: "{state.batch.result.genre_list}"
+    collect: verdicts
+    flatten_output: true
+    on_error: fail
+
+  save:
+    type: tool_call
+    tool: save_results
+    args:
+      results_file: "{state.results_file}"
+      verdicts: "{state.verdicts}"
+    state_key: saved
+    on_error: fail
+
+edges:
+  - from: START
+    to: load
+  - from: load
+    to: classify
+  - from: classify
+    to: save
+  - from: save
+    to: END

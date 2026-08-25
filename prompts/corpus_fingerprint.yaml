@@ -1,0 +1,37 @@
+name: corpus_fingerprint
+description: FR-890 per-prompt content fingerprint + genre classification (haiku).
+user: |
+  Classify ONE image-generation prompt against the frozen taxonomy
+  below. Judge the PROMPT TEXT ONLY — what it asks an image model to
+  depict. Do not judge language, ideology, or non-visual themes.
+
+  {{ taxonomy_rules }}
+
+  Rules:
+  - sexual and gore are each exactly "safe" or "mature".
+  - genre is exactly one of: {{ genre_list }}.
+  - Choose the most specific non-other genre; "other" only when no
+    concrete genre's inclusion rules match.
+  - Return ref exactly as given, unchanged.
+
+  ref: {{ ref }}
+  prompt:
+  ---
+  {{ prompt }}
+  ---
+
+schema:
+  name: FingerprintVerdict
+  fields:
+    ref:
+      type: int
+      description: The ref integer given above, echoed exactly.
+    sexual:
+      type: str
+      description: '"safe" or "mature" per the sexual rule.'
+    gore:
+      type: str
+      description: '"safe" or "mature" per the gore rule.'
+    genre:
+      type: str
+      description: Exactly one genre name from the given list.
