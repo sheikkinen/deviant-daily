@@ -1,0 +1,45 @@
+name: Provider fan-out
+id: CAP-17
+status: active
+description: >
+  FR-888 generate with all selected providers: one prompt runs
+  sequentially through all (or an explicit subset of) active roster
+  models, producing one typed GenerationOutcome per model — an image
+  path or a committed run_source=probe failure row. Generation only:
+  no publish ledger, no DA API, no slot. Witnessed by
+  tests/test_fanout.py.
+requirements:
+  - id: REQ-DD-103
+    description: >
+      Model selection resolves up front, before any provider call or
+      output write: all-models = every active roster model in
+      deterministic order; explicit subsets keep their given order;
+      unknown names fail with the valid list; duplicates fail fast.
+  - id: REQ-DD-104
+    description: >
+      A provider failure for one model becomes a failed outcome only
+      after its run_source=probe failure row is committed; later models
+      continue; the outcome list stays ordered and complete.
+  - id: REQ-DD-105
+    description: >
+      GenerationOutcome is typed with model, slug, status ok|failed,
+      and exactly one of output path or FailureRecord.
+  - id: REQ-DD-106
+    description: >
+      Fan-out writes no state/published.jsonl rows, calls no DeviantArt
+      API, consumes no slot; a fully successful fan-out performs no git
+      operations at all.
+  - id: REQ-DD-107
+    description: >
+      Each model writes to the distinct path <out_dir>/<date>-<model>.png;
+      two successful models cannot clobber each other.
+  - id: REQ-DD-108
+    description: >
+      A failure-ledger append/commit failure aborts the fan-out red
+      with the provider failure primary and the ledger failure as
+      cause; the run does not continue to later models.
+  - id: REQ-DD-109
+    description: >
+      The operator CLI wires --all-models/--models only by delegating
+      to the enforced fan-out primitive; single-model --model conflicts
+      with fan-out flags.
