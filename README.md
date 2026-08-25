@@ -72,6 +72,24 @@ FR-886's router derives per-model tolerance from accumulated rows;
 FR-888 (fan-out) and FR-889 (user prompts) write `probe`/`user` rows.
 This FR implements none of those — logging only.
 
+## User-prompt generation (FR-889)
+
+```bash
+python scripts/generate.py --prompt "text" [--model name] \
+    [--date YYYY-MM-DD] [--out-dir outputs]
+python scripts/generate.py --prompt-file path ...
+```
+
+Generation only — never publishes: no corpus draw, no slot, no
+`state/published.jsonl` row, no DeviantArt call. The prompt passes
+VERBATIM to the provider (`--prompt-file` is strict UTF-8, all
+newlines preserved; invalid UTF-8 fails before any provider call).
+Output lands at `<out_dir>/<date>-user-<model>.png`. A refusal
+becomes a committed `state/failures.jsonl` row with
+`run_source="user"` and the run stays red. FR-888 fan-out flags
+(`--all-models`/`--models`) activate when FR-888's primitive is
+enforced — not yet wired.
+
 ## Model roster (FR-826 R-4, frozen)
 
 | Model | Slug | Status |

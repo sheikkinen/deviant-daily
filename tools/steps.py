@@ -106,13 +106,15 @@ def generate_step(
     slot: str | int | None = None,
     run_source: str = "corpus",
     runner=subprocess.run,
+    out_path: str | None = None,
 ) -> dict:
     """Generate; on failure commit a FailureRecord row, then re-raise
     (FR-887). A ledger commit failure stays secondary: the provider
     failure is re-raised with it attached as cause + note (R-3)."""
     model_name, config = choose_model(name=parse_model(model))
+    target = out_path or f"/tmp/deviant-daily-{date}.png"
     try:
-        image_path = generate_image(prompt, config, f"/tmp/deviant-daily-{date}.png")
+        image_path = generate_image(prompt, config, target)
     except Exception as exc:
         record = build_failure_record(
             exc=exc,

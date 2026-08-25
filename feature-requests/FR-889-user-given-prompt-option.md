@@ -2,7 +2,8 @@
 
 **Priority:** HIGH
 **Type:** Feature
-**Status:** Judged — APPROVED WITH REVISIONS (2026-08-25); R-1..R-6 folded below
+**Status:** Enforced 2026-08-25 — see Implementation Record; AC-08
+(FR-888 composition) deliberately deferred to FR-888 enforcement
 **Effort:** 0.5 day
 **Requested:** 2026-08-25
 **Depends on:** FR-887 (enforced 2026-08-25 — `run_source="user"` rows);
@@ -72,36 +73,36 @@ with failures recorded.
 
 *(Revised per judgement — supersedes the draft AC-1..AC-5.)*
 
-- [ ] AC-01: `scripts/generate.py --prompt "text"` calls the generation
+- [x] AC-01: `scripts/generate.py --prompt "text"` calls the generation
   boundary with exactly `text`; a mocked provider asserts
   byte-identical prompt delivery to `replicate.run()` input.
-- [ ] AC-02: `--prompt-file path` reads UTF-8 text, preserves all file
+- [x] AC-02: `--prompt-file path` reads UTF-8 text, preserves all file
   contents including trailing newlines, and passes exactly that string
   to `replicate.run()`; invalid UTF-8 fails before any provider call
   or output write.
-- [ ] AC-03: `--prompt` and `--prompt-file` are mutually exclusive,
+- [x] AC-03: `--prompt` and `--prompt-file` are mutually exclusive,
   exactly one is required, and any corpus draw/publish path
   combination is rejected before `draw_step()` or any ledger write.
-- [ ] AC-04: A mocked user-prompt provider refusal appends and commits
+- [x] AC-04: A mocked user-prompt provider refusal appends and commits
   exactly one `state/failures.jsonl` row with `run_source="user"`,
   `slot=null`, `source_file=null`, and no full prompt text, then exits
   red per FR-887 two-error semantics.
-- [ ] AC-05: A mocked successful user-prompt run writes an image to the
+- [x] AC-05: A mocked successful user-prompt run writes an image to the
   defined output path and writes no `state/published.jsonl` row,
   consumes no slot, calls no `tools.da_api` function, and does not
   invoke `describe_step`, `gate_step`, or `publish_step`.
-- [ ] AC-06: Unknown model names fail through the existing roster
+- [x] AC-06: Unknown model names fail through the existing roster
   validation before any provider call or output file write; valid
   pinned models pass through to the generation boundary.
-- [ ] AC-07: Repeated or multi-model invocations in one command cannot
+- [x] AC-07: Repeated or multi-model invocations in one command cannot
   clobber outputs; tests assert the exact output path shape.
-- [ ] AC-08: If `--all-models`/`--models` is implemented with this FR,
+- [ ] AC-08 (deferred to FR-888): If `--all-models`/`--models` is implemented with this FR,
   it delegates to the enforced FR-888 fan-out primitive and satisfies
   FR-888's ordered preflight, sequential execution, distinct output
   path, failure-ledger, and no-publish gates.
-- [ ] AC-09: New `REQ-DD` ids are added to a capability file, and every
+- [x] AC-09: New `REQ-DD` ids are added to a capability file, and every
   new/changed test carries `@pytest.mark.req(...)` linked to those ids.
-- [ ] AC-10: README documents the user-prompt command, prompt-file
+- [x] AC-10: README documents the user-prompt command, prompt-file
   encoding/newline behavior, output location, model/date options,
   failure logging with `run_source="user"`, no-publish/no-slot
   boundary, and FR-888 composition status.
@@ -124,3 +125,20 @@ with failures recorded.
 
 - Prompt templating/history.
 - Publishing user-prompt outputs.
+
+## Implementation Record (2026-08-25)
+
+- `tools/user_generate.py` (new): argparse CLI logic — XOR-required
+  prompt flags, strict UTF-8 verbatim `read_prompt`, model resolved up
+  front so the output path names it, delegates to `generate_step` with
+  `run_source="user"` and `out_path`.
+- `scripts/generate.py` (new): thin operator shim.
+- `tools/steps.py`: `generate_step` gained optional `out_path`
+  (default unchanged: `/tmp/deviant-daily-{date}.png`).
+- `capabilities/CAP-16-user-prompt-cli.yaml`: REQ-DD-098..102;
+  `tests/test_user_generate.py` 8 tests with a deep provider fake
+  witnessing byte-identical `replicate.run` delivery; full suite 237
+  passed; `req_coverage --strict` green.
+- Deviation: AC-08 (FR-888 flag composition) deferred to FR-888
+  enforcement per judgement R-6/D-5 — documented in README as not yet
+  wired.
