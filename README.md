@@ -53,6 +53,25 @@ before the next side effect. Reruns resume; a terminal same-day record
 exits idempotently. A post-publish commit failure fails the run as
 `RECOVERY_REQUIRED` with the deviation id in the log.
 
+## Failure ledger (FR-887)
+
+`state/failures.jsonl` records every image-generation failure as a
+typed, committed row, then re-raises — the run stays red, nothing is
+swallowed. Fields: `ts` (UTC ISO-8601), `date`, `slot` (null for
+non-corpus runs), `model` (roster name), `slug`, `prompt_sha` (sha256
+of the exact prompt bytes — full prompt text is never committed; the
+corpus is the lookup), `source_file` (null for user/probe),
+`error_class` (`refusal | transport | timeout | unknown` — a typed
+claim bound to exception classes, with the raw provider excerpt
+preserved alongside, capped and secret-redacted), `provider_message`,
+and `run_source` (`corpus | user | probe`).
+
+It is its own artifact with its own helper (`tools/failures.py`) —
+the publish ledger's status machine is untouched. Consumers:
+FR-886's router derives per-model tolerance from accumulated rows;
+FR-888 (fan-out) and FR-889 (user prompts) write `probe`/`user` rows.
+This FR implements none of those — logging only.
+
 ## Model roster (FR-826 R-4, frozen)
 
 | Model | Slug | Status |

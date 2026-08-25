@@ -2,7 +2,7 @@
 
 **Priority:** HIGH
 **Type:** Feature
-**Status:** Judged — APPROVED WITH REVISIONS (2026-08-25); R-1..R-5 folded below
+**Status:** Enforced 2026-08-25 — all ACs green; see Implementation Record
 **Effort:** 0.5 day
 **Requested:** 2026-08-25
 **First consumer / first event:** the operator, at the first refused
@@ -81,36 +81,36 @@ byproduct of normal and operator-driven runs.
 
 *(Revised per judgement — supersedes the draft AC-1..AC-5.)*
 
-- [ ] AC-01: A mocked provider refusal during corpus `generate_step`
+- [x] AC-01: A mocked provider refusal during corpus `generate_step`
   appends and commits exactly one `FailureRecord` row to
   `state/failures.jsonl`, then the run exits red by re-raising the
   original generation failure per the R-3 rule.
-- [ ] AC-02: The logged corpus-row failure includes `date`, integer
+- [x] AC-02: The logged corpus-row failure includes `date`, integer
   `slot`, roster `model` name, roster `slug`, `source_file`,
   `prompt_sha`, `error_class="refusal"`, capped/redacted
   `provider_message`, and `run_source="corpus"`; no full prompt text.
-- [ ] AC-03: Mocked tests witness `error_class` values `refusal`,
+- [x] AC-03: Mocked tests witness `error_class` values `refusal`,
   `transport`, `timeout`, and `unknown`; every branch preserves a
   capped/redacted raw provider excerpt.
-- [ ] AC-04: A mocked successful generation writes no row to
+- [x] AC-04: A mocked successful generation writes no row to
   `state/failures.jsonl`.
-- [ ] AC-05: Failure-ledger writing is append-only and committed with
+- [x] AC-05: Failure-ledger writing is append-only and committed with
   git add/commit/pull --rebase/push discipline equivalent to
   `commit_push()`; it does not add new statuses to
   `state/published.jsonl`.
-- [ ] AC-06: A failure while writing or committing the failure row is
+- [x] AC-06: A failure while writing or committing the failure row is
   tested and cannot produce a green/success-shaped exit; the original
   provider failure and the logging failure are both inspectable.
-- [ ] AC-07: `prompt_sha` is computed from the exact prompt bytes
+- [x] AC-07: `prompt_sha` is computed from the exact prompt bytes
   passed to the provider, and tests prove the full prompt string is
   absent from the failure row.
-- [ ] AC-08: `source_file` and `slot` nullability are tested for
+- [x] AC-08: `source_file` and `slot` nullability are tested for
   non-corpus runs, with `run_source="user"` and `run_source="probe"`
   available for FR-889 and FR-888 consumers without implementing those
   FRs here.
-- [ ] AC-09: New `REQ-DD` ids are added to a capability file, and every
+- [x] AC-09: New `REQ-DD` ids are added to a capability file, and every
   new/changed test carries `@pytest.mark.req(...)` linked to them.
-- [ ] AC-10: README documents `state/failures.jsonl`, field meanings,
+- [x] AC-10: README documents `state/failures.jsonl`, field meanings,
   failure classes, privacy boundary, and that FR-886/FR-888/FR-889
   consume these rows without this FR implementing routing, fan-out, or
   user-prompt entry points.
@@ -134,3 +134,18 @@ byproduct of normal and operator-driven runs.
 
 - Retries, routing, model selection changes (FR-886).
 - Synthetic probing (FR-885 — proposed superseded by this + FR-888/889).
+
+## Implementation Record (2026-08-25)
+
+- `tools/failures.py` (new): `FailureRecord`, `classify_failure`
+  (closed, type-bound), `redact_excerpt` (500-char cap, secret/URL-cred
+  redaction), `append_failure_record` (own artifact via `commit_push`).
+- `tools/steps.py`: `generate_step` gained `source_file`, `slot`,
+  `run_source`, `runner`; try/except record-then-reraise; two-error
+  semantics via `raise exc from ledger_exc` + `add_note`.
+- `graph.yaml`: generate node args wired for `source_file` + `slot`
+  (minimal wiring per gate C-6); `yamlgraph graph lint` clean.
+- `capabilities/CAP-15-generation-failure-logging.yaml`:
+  REQ-DD-092..097; `tests/test_failures.py` 13 tests, all req-marked;
+  full suite 229 passed; `req_coverage --strict` green.
+- Deviation: none — scope held to logging only (C-5).

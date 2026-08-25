@@ -24,6 +24,7 @@ from pydantic import ValidationError
 
 from tools import da_api
 from tools.corpus import draw_prompt
+from tools.failures import append_failure_record, build_failure_record
 from tools.gate import PostDescription, evaluate_gate
 from tools.generate import generate_image
 from tools.inputs import parse_date, parse_model, parse_slot
@@ -44,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 REPO_DIR = Path(__file__).parent.parent
 LEDGER = REPO_DIR / "state" / "published.jsonl"
+FAILURES = REPO_DIR / "state" / "failures.jsonl"
 CORPUS = REPO_DIR / "prompts" / "corpus.jsonl"
 DA_REPO = "sheikkinen/deviant-daily"
 
@@ -96,9 +98,38 @@ def draw_step(date: str = "", runner=subprocess.run) -> dict:
     return {**drawn, "date": date, "slot": slot, "done": False}
 
 
-def generate_step(prompt: str, date: str, model: str = "") -> dict:
+def generate_step(
+    prompt: str,
+    date: str,
+    model: str = "",
+    source_file: str | None = None,
+    slot: str | int | None = None,
+    run_source: str = "corpus",
+    runner=subprocess.run,
+) -> dict:
+    """Generate; on failure commit a FailureRecord row, then re-raise
+    (FR-887). A ledger commit failure stays secondary: the provider
+    failure is re-raised with it attached as cause + note (R-3)."""
     model_name, config = choose_model(name=parse_model(model))
-    image_path = generate_image(prompt, config, f"/tmp/deviant-daily-{date}.png")
+    try:
+        image_path = generate_image(prompt, config, f"/tmp/deviant-daily-{date}.png")
+    except Exception as exc:
+        record = build_failure_record(
+            exc=exc,
+            date=date,
+            slot=parse_slot(slot) if slot is not None else None,
+            model=model_name,
+            slug=config["slug"],
+            prompt=prompt,
+            source_file=source_file or None,
+            run_source=run_source,
+        )
+        try:
+            append_failure_record(REPO_DIR, FAILURES, record, runner=runner)
+        except Exception as ledger_exc:
+            exc.add_note(f"failure-ledger write also failed: {ledger_exc}")
+            raise exc from ledger_exc
+        raise
     return {"model_name": model_name, "image_path": image_path}
 
 

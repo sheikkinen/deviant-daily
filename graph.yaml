@@ -54,6 +54,8 @@ nodes:
       prompt: "{state.drawn.result.prompt}"
       date: "{state.drawn.result.date}"
       model: "{state.model}"
+      source_file: "{state.drawn.result.source_file}"
+      slot: "{state.drawn.result.slot}"
     state_key: generated
     on_error: fail
 
