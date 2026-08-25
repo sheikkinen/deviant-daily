@@ -17,13 +17,14 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import subprocess
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from tools import da_api
-from tools.corpus import draw_prompt
+from tools.corpus import load_corpus, row_id, unused_candidates
 from tools.failures import append_failure_record, build_failure_record
 from tools.gate import PostDescription, evaluate_gate
 from tools.generate import generate_image
@@ -39,6 +40,14 @@ from tools.ledger import (
 )
 from tools.post import post_path, render_artist_comments, render_post_md
 from tools.roster import choose_model, validate_roster
+from tools.route import (
+    UnroutablePrompt,
+    content_tuple,
+    load_failure_rows,
+    load_taxonomy,
+    refusal_evidence,
+    route,
+)
 from tools.vision import DescribeResult, InvalidDescription, describe_image
 
 logger = logging.getLogger(__name__)
@@ -54,6 +63,7 @@ def _resumed(existing: dict, date: str, slot: int) -> dict:
     return {
         "prompt": existing.get("prompt", ""),
         "source_file": existing.get("source_file", ""),
+        "model": existing.get("model", ""),
         "resumed": True,
         "status": existing["status"],
         "date": date,
@@ -62,12 +72,34 @@ def _resumed(existing: dict, date: str, slot: int) -> dict:
     }
 
 
-def draw_step(date: str = "", runner=subprocess.run) -> dict:
+def _route_candidate(candidates: list[dict], roster: dict) -> tuple[dict, str]:
+    """Route-before-commit (FR-886): skipped candidates leave zero ledger
+    rows; all-unroutable raises the typed exclusion."""
+    axes = load_taxonomy()
+    evidence = refusal_evidence(load_failure_rows(FAILURES), load_corpus(CORPUS), axes)
+    order = list(candidates)
+    random.shuffle(order)
+    skipped = 0
+    for candidate in order:
+        try:
+            bound = route(content_tuple(candidate, axes), evidence, roster)
+            if skipped:
+                logger.info("draw: skipped %d unroutable candidate(s)", skipped)
+            return candidate, bound
+        except UnroutablePrompt:
+            skipped += 1
+    raise UnroutablePrompt(
+        f"all {len(order)} remaining candidates unroutable (skipped={skipped})"
+    )
+
+
+def draw_step(date: str = "", model: str = "", runner=subprocess.run) -> dict:
     """Roster check first (R-4: fail before any draw), then take the next
-    slot and draw. A terminal slot is not a stop sign — it just means the
-    next run gets the next slot.
+    slot, route (FR-886), and draw. A terminal slot is not a stop sign —
+    the next run gets the next slot. The committed drawn row records the
+    model binding; generation must consume it, never re-select.
     """
-    validate_roster()
+    roster = validate_roster()
     date = parse_date(date)
 
     entries = read_ledger(LEDGER)
@@ -81,8 +113,14 @@ def draw_step(date: str = "", runner=subprocess.run) -> dict:
         return _resumed(existing, date, slot)
 
     slot = slot + 1 if existing else 0
-    drawn = draw_prompt(CORPUS, entries, date, slot)
-    logger.info("draw: %s#%d from %s", date, slot, drawn["source_file"])
+    candidates = unused_candidates(CORPUS, entries)
+    pinned = parse_model(model)
+    if pinned:
+        row, bound = random.choice(candidates), pinned  # pin bypasses routing
+    else:
+        row, bound = _route_candidate(candidates, roster)
+    source_file = row_id(row)
+    logger.info("draw: %s#%d from %s -> model=%s", date, slot, source_file, bound)
     record_transition(
         REPO_DIR,
         LEDGER,
@@ -90,12 +128,22 @@ def draw_step(date: str = "", runner=subprocess.run) -> dict:
             "date": date,
             "slot": slot,
             "status": "drawn",
-            "prompt": drawn["prompt"],
-            "source_file": drawn["source_file"],
+            "prompt": row["prompt"],
+            "source_file": source_file,
+            "model": bound,
         },
         runner=runner,
     )
-    return {**drawn, "date": date, "slot": slot, "done": False}
+    return {
+        "prompt": row["prompt"],
+        "source_file": source_file,
+        "model": bound,
+        "resumed": False,
+        "status": None,
+        "date": date,
+        "slot": slot,
+        "done": False,
+    }
 
 
 def generate_step(

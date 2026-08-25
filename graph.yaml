@@ -44,6 +44,7 @@ nodes:
     tool: draw_step
     args:
       date: "{state.date}"
+      model: "{state.model}"
     state_key: drawn
     on_error: fail
 
@@ -53,7 +54,7 @@ nodes:
     args:
       prompt: "{state.drawn.result.prompt}"
       date: "{state.drawn.result.date}"
-      model: "{state.model}"
+      model: "{state.drawn.result.model}"
       source_file: "{state.drawn.result.source_file}"
       slot: "{state.drawn.result.slot}"
     state_key: generated

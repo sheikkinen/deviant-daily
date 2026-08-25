@@ -43,6 +43,17 @@ def load_corpus(path: str | Path) -> list[dict]:
     return rows
 
 
+def unused_candidates(
+    corpus_path: str | Path, ledger_entries: list[dict]
+) -> list[dict]:
+    """Never-drawn corpus rows (FR-886 route-before-commit iteration)."""
+    used = used_source_ids(ledger_entries)
+    candidates = [r for r in load_corpus(corpus_path) if row_id(r) not in used]
+    if not candidates:
+        raise CorpusExhausted("all corpus prompts have been published")
+    return candidates
+
+
 def draw_prompt(
     corpus_path: str | Path,
     ledger_entries: list[dict],

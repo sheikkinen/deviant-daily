@@ -70,7 +70,30 @@ It is its own artifact with its own helper (`tools/failures.py`) —
 the publish ledger's status machine is untouched. Consumers:
 FR-886's router derives per-model tolerance from accumulated rows;
 FR-888 (fan-out) and FR-889 (user prompts) write `probe`/`user` rows.
-This FR implements none of those — logging only.
+
+## Draw routing (FR-886)
+
+The daily draw joins the FR-890 corpus fingerprint
+(`content.{sexual,gore}`: safe|mature) with refusal evidence from
+`state/failures.jsonl`: a model with a witnessed
+`error_class="refusal"` for a prompt's exact content tuple is excluded
+for prompts carrying that tuple (`tools/route.py`). Contract:
+
+- **Cold start:** no evidence → every model eligible — identical to
+  the blind pick; each production refusal makes the next draw smarter.
+- **Binding at draw:** routing happens BEFORE the drawn row is
+  committed; the row records the bound `model` and generation consumes
+  it — no re-selection.
+- **Pinned model** (workflow `model` input) bypasses routing; refusals
+  still land in the failure ledger as evidence.
+- **Unroutable prompts** are skipped with zero ledger writes; if every
+  remaining candidate is unroutable the run exits red
+  (`UnroutablePrompt`) without burning a slot.
+- **Unfingerprinted/invalid rows** route as maximally mature.
+  Taxonomy is single-sourced from
+  `data/corpus_fingerprint_taxonomy.yaml`; drift is rejected.
+- Routing is offline — no LLM or network in the draw path — and never
+  writes to any ledger.
 
 ## User-prompt generation (FR-889)
 
