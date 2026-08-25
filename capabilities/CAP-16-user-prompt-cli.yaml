@@ -1,0 +1,38 @@
+name: User-prompt generation CLI
+id: CAP-16
+status: active
+description: >
+  FR-889 user-given prompt option: a generation-only operator CLI
+  (scripts/generate.py -> tools/user_generate.py) that sends an
+  operator-supplied prompt verbatim through the audited generation
+  boundary — FR-887 failure logging with run_source=user — without
+  touching the publish pipeline. Witnessed by
+  tests/test_user_generate.py.
+requirements:
+  - id: REQ-DD-098
+    description: >
+      The operator prompt reaches replicate.run byte-identical, whether
+      given as --prompt argv text or --prompt-file UTF-8 contents with
+      all newlines preserved; no rewriting, filtering, or augmentation.
+  - id: REQ-DD-099
+    description: >
+      Preflight completes before any side effect: --prompt XOR
+      --prompt-file with exactly one required, invalid UTF-8 rejected,
+      and unknown model names rejected via roster validation — all
+      before any provider call or output write.
+  - id: REQ-DD-100
+    description: >
+      A refused user prompt appends and commits exactly one
+      state/failures.jsonl row with run_source=user, null slot and
+      source_file, no full prompt text, then exits red per FR-887
+      semantics.
+  - id: REQ-DD-101
+    description: >
+      A successful user-prompt run writes only the image artifact: no
+      state/published.jsonl row, no slot, no DeviantArt API call, no
+      describe/gate/publish step.
+  - id: REQ-DD-102
+    description: >
+      The output path is a deterministic function of
+      (out_dir, date, model): <out_dir>/<date>-user-<model>.png, with
+      parent directories created.
