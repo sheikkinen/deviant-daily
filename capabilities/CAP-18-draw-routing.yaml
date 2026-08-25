@@ -1,0 +1,54 @@
+name: Deterministic draw routing
+id: CAP-18
+status: active
+description: >
+  FR-886 deterministic draw routing: the daily draw joins FR-890 corpus
+  content fingerprints with FR-887 refusal evidence and binds a model
+  at the draw boundary, before the drawn row is committed. Pure
+  functions, no LLM or network at draw time; unroutable prompts are
+  skipped with zero ledger writes. Witnessed by tests/test_route.py.
+requirements:
+  - id: REQ-DD-110
+    description: >
+      refusal_evidence joins error_class=refusal rows to corpus rows by
+      prompt_sha into (model, content-tuple) cells; transport/timeout/
+      unknown rows and non-corpus hashes are counted, never evidence;
+      an absent state/failures.jsonl is an empty evidence set.
+  - id: REQ-DD-111
+    description: >
+      eligible_models is pure: zero refusal evidence admits a model,
+      one witnessed refusal for the exact content tuple excludes it,
+      other tuples are unaffected, and an empty eligible set raises the
+      typed UnroutablePrompt exclusion.
+  - id: REQ-DD-112
+    description: >
+      Route selection is deterministic for declared inputs via an
+      injected RNG; with empty evidence and an equally-seeded RNG the
+      pick equals today's blind choose_model pick.
+  - id: REQ-DD-113
+    description: >
+      draw_step routes before committing the drawn row, records the
+      bound model on the committed row, skips unroutable candidates
+      with zero ledger writes, and raises the typed exclusion when
+      every remaining candidate is unroutable.
+  - id: REQ-DD-114
+    description: >
+      The draw-bound model is the generation model: generate_step
+      honors the binding and graph.yaml wires
+      state.drawn.result.model into the generate node — production
+      never routes and then independently re-selects.
+  - id: REQ-DD-115
+    description: >
+      An operator-pinned model bypasses routing at draw time and is
+      recorded as the binding; later provider refusals still land in
+      the failure ledger.
+  - id: REQ-DD-116
+    description: >
+      Missing, partial, or invalid corpus fingerprints route as
+      maximally mature (mature, mature) with a counted reason; the
+      router validates against data/corpus_fingerprint_taxonomy.yaml
+      and rejects a drifted taxonomy.
+  - id: REQ-DD-117
+    description: >
+      The draw routing path is offline: no LLM, provider, or network
+      access; router tests run without any network.
