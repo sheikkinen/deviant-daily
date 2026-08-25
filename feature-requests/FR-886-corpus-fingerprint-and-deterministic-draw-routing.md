@@ -2,8 +2,7 @@
 
 **Priority:** HIGH
 **Type:** Feature
-**Status:** Draft — supply-side rewritten 2026-08-25 around organic
-refusal evidence; ready for judgement
+**Status:** Judged — APPROVED WITH REVISIONS (2026-08-25); R-1..R-7 folded below
 **Effort:** 1–2 days
 **Requested:** 2026-08-24
 **Depends on:** FR-890 (corpus fingerprint enrichment — **DONE
@@ -63,14 +62,18 @@ makes the next draw smarter, automatically.
 
 ## Problem
 
-- `prompts/corpus.jsonl` (7,392 rows) has **no content-class fields**:
-  `prompt, source_file, local_model, dialect, seed, size, created` only.
-- Draw-time model selection is blind; mature-prompt × strict-model
-  collisions are witnessed as wasted paid generations and sanitized
-  duds.
+*(R-1: updated to the post-FR-890 state.)*
+
+- `prompts/corpus.jsonl` (7,392 rows) is fully fingerprinted
+  (`content.sexual`, `content.gore`, `fingerprint` — FR-890, enforced
+  2026-08-25), but the draw step does not consume those fields: model
+  selection is still blind.
+- Mature-prompt × strict-model collisions are witnessed as wasted paid
+  generations and sanitized duds; each refusal now lands in
+  `state/failures.jsonl` (FR-887) but nothing reads it.
 - Upstream filtering removed the extremes (gore/porn dropped at
-  extraction), but the surviving mid-spectrum is where model tolerance
-  diverges — and it is unlabeled.
+  extraction); the surviving mid-spectrum is where model tolerance
+  diverges — labeled now, still unrouted.
 
 ## Proposed Solution
 
@@ -88,6 +91,9 @@ ladder is superseded.
 - Evidence source: `state/failures.jsonl` rows with
   `error_class="refusal"` ONLY — transport/timeout/unknown are
   operational noise, never tolerance signal.
+- **Absent ledger (R-4):** a missing `state/failures.jsonl` is an
+  EMPTY evidence set — not an error, not permission to invent data
+  (FR-887 creates the file only on first failure).
 - Attribution: a refusal is joined back to its corpus row via
   `prompt_sha` (FR-887 hashes the exact prompt bytes; the corpus is
   the lookup). The refusal witnesses the prompt's full content tuple
@@ -104,51 +110,94 @@ ladder is superseded.
   and `eligible_models(fingerprint, evidence, roster) -> list[str]` —
   a model is eligible iff its `(model, tuple)` cell has ZERO witnessed
   refusals (Decisions: floor = 1, unknown = eligible).
-- `route(...)` picks among eligible with the existing draw's selection
-  rule (preserve current rotation/randomness *within* the eligible
-  set); raises a typed, counted exclusion when the eligible set is
-  empty — the prompt is skipped, never burned.
+- **Determinism (R-3):** randomness is an explicit input — `route(...)`
+  accepts an injected `rng: random.Random` and applies the existing
+  selection rule `rng.choice(sorted(eligible))` (same shape as
+  `choose_model`). Same inputs including the RNG → same output.
+  Cold-start neutrality is defined against the same injected RNG:
+  with empty evidence, `route(fp, {}, roster, rng)` equals
+  `choose_model`'s pick with an equally-seeded RNG.
+- `route(...)` raises a typed exclusion (`UnroutablePrompt`) when the
+  eligible set is empty — the prompt is skipped, never burned.
+- **Taxonomy boundary (R-6):** `data/corpus_fingerprint_taxonomy.yaml`
+  is the runtime source of truth; the router validates corpus
+  `content` values against it and never redeclares the axes. Missing,
+  invalid, or partial fingerprints route as maximally mature
+  `(mature, mature)` with a counted reason.
 
 ### 4. Draw integration
 
-- `draw_step` routes BEFORE committing the drawn row; the row records
-  the bound model; `generate_step` consumes the binding.
-- An operator-pinned model bypasses routing (Decisions).
-- Prompts without a fingerprint are routed as maximally mature
-  `(mature, mature)` — conservative — until enrichment covers them.
+- **Model binding flow (R-2):** `draw_step` gains a `model` argument
+  wired from the workflow input in `graph.yaml`. Non-empty pin →
+  routing bypassed, pin recorded as the binding. Otherwise `draw_step`
+  routes BEFORE committing the drawn row; the committed row records
+  the bound model; `generate_step` consumes `drawn.model` and does NOT
+  re-select — binding authority lives at the draw boundary.
+- **Unroutable skip algorithm (R-5):** draw iterates candidates in the
+  existing draw order; an unroutable candidate is skipped WITHOUT any
+  ledger write (no drawn row, no failure row — counted reasons are
+  returned/logged only, per C-2), bounded by the remaining unused
+  corpus. If every remaining candidate is unroutable, `draw_step`
+  raises the typed exclusion and the run exits red with zero ledger
+  writes. Tests witness: one skipped candidate, all-unroutable, and
+  no ledger transition for skipped candidates.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: FR-890 enforced — corpus columns present (dependency
-  witness, not re-implemented here).
-- [ ] AC-2: Evidence join uses `prompt_sha` and the FR-890 taxonomy
-  verbatim; a test fails if the taxonomies drift apart; non-corpus
-  `prompt_sha` rows are skipped with a counted reason.
-- [ ] AC-3: `eligible_models` is pure and fully unit-tested: model with
-  zero refusal evidence admitted (cold start), model with one witnessed
-  refusal for the tuple excluded, transport/timeout/unknown rows never
-  exclude, empty eligible set raises typed exclusion.
-- [ ] AC-4: Draw step routes via the join BEFORE committing the drawn
-  row; a mocked end-to-end test witnesses a mature prompt bypassing a
-  refusal-witnessed model and landing on an unwitnessed one; the drawn
-  row records the model binding.
-- [ ] AC-5: Unfingerprinted prompts route as maximally mature (test);
-  operator-pinned model bypasses routing (test).
-- [ ] AC-6: No LLM call in the draw path (test: router works offline).
-- [ ] AC-7: New REQ-DD ids in a capability file; all new tests
-  req-marked.
-- [ ] AC-8: README documents the routing contract, the evidence join,
-  and the cold-start behavior.
+*(Revised per judgement — supersedes the draft AC-1..AC-8.)*
+
+- [ ] AC-01: The FR text reflects the enforced FR-890 state: corpus
+  rows already carry `content`/`fingerprint`; this FR only consumes
+  those fields for routing.
+- [ ] AC-02: `refusal_evidence(failure_rows, corpus)` joins refusal
+  rows to corpus rows by `prompt_sha`, uses the FR-890 `(sexual, gore)`
+  tuple verbatim, ignores transport/timeout/unknown rows, treats an
+  absent `state/failures.jsonl` as empty, and counts non-corpus prompt
+  hashes without guessing.
+- [ ] AC-03: `eligible_models(fingerprint, evidence, roster)` is pure
+  and unit-tested: zero refusal evidence admits a model, one witnessed
+  refusal for the exact tuple excludes it, other tuples do not exclude
+  it, and an empty eligible set raises a typed unroutable exclusion.
+- [ ] AC-04: Route selection is deterministic for declared inputs via
+  an injected RNG/seed; cold-start routing with the same selection
+  input is identical to today's blind roster pick.
+- [ ] AC-05: `draw_step` routes before committing the drawn row, skips
+  unroutable candidates without writing them to `state/published.jsonl`
+  or `state/failures.jsonl`, records the bound model on the committed
+  drawn row, and returns that binding for generation.
+- [ ] AC-06: A mocked end-to-end draw test witnesses a mature prompt
+  bypassing a refusal-witnessed model and binding to an eligible model
+  before `generate_step`; `generate_step` uses the draw-bound model
+  and does not re-select a different model.
+- [ ] AC-07: Operator-pinned `--model`/workflow `model` bypasses
+  routing at draw time, records the pinned binding, and still allows
+  any later provider refusal to be logged by FR-887.
+- [ ] AC-08: Missing, invalid, or partial corpus fingerprints route as
+  maximally mature `(mature, mature)` with a counted reason; taxonomy
+  drift from `data/corpus_fingerprint_taxonomy.yaml` fails a test.
+- [ ] AC-09: No LLM call, provider call, or network call exists in the
+  draw routing path; router tests run offline.
+- [ ] AC-10: New REQ-DD ids in a capability file cover routing/evidence
+  behavior, and every new or changed test carries `@pytest.mark.req`.
+- [ ] AC-11: README documents the routing contract, failure-evidence
+  join, cold-start behavior, pinned-model bypass, unroutable skip
+  behavior, and that routing does not write the failure ledger.
 
 ## Constraints
 
-- C-1: Draw-time routing is a pure function — no network, no LLM.
+- C-1: Draw-time routing is a pure function — no network, no LLM
+  (gate: router tests run offline).
 - C-2: Only `error_class="refusal"` rows are tolerance evidence;
-  routing never writes to any ledger.
-- C-3: Cold-start neutrality: with an empty failure ledger, routing
-  behavior is identical to today's blind pick (witnessed by test).
+  routing never writes to any ledger — skipped candidates leave zero
+  ledger rows (gates C-4/C-5).
+- C-3: Cold-start neutrality: with an empty failure ledger and the
+  same injected RNG, routing behavior is identical to today's blind
+  pick (witnessed by test).
 - C-4: No roster changes, no model admission/retirement.
-- C-5: Taxonomy single-sourced from the FR-890 artifact.
+- C-5: Taxonomy single-sourced from
+  `data/corpus_fingerprint_taxonomy.yaml` — never redeclared (gate C-6).
+- C-6: The draw-bound model IS the generation model — production must
+  not route and then independently `choose_model()` again (gate C-3).
 
 ## Out of Scope
 
