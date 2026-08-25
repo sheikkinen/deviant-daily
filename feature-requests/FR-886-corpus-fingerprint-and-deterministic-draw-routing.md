@@ -5,23 +5,24 @@
 **Status:** Draft — blocked pending supply-side revision
 **Effort:** 1–2 days
 **Requested:** 2026-08-24
-**Depends on:** FR-887/FR-888/FR-889 outcome evidence; FR-885 superseded
+**Depends on:** FR-890 (corpus fingerprint enrichment — carved out
+2026-08-25); FR-887/FR-888/FR-889 outcome evidence; FR-885 superseded
 **First consumer / first event:** the daily draw step, at the first
 scheduled run after merge — every drawn prompt is dispatched to a model
 measured to tolerate it, instead of a blind roster pick.
 
-**Revision required before judgement:** replace the FR-885 matrix contract below
-with the general outcome evidence produced by FR-887/FR-888/FR-889. Do not judge
-or enforce this draft while the stale matrix references remain.
+**Revision required before judgement:** the demand side is now FR-890
+(corpus fingerprint); the supply-side tolerance-matrix contract below
+must still be replaced with the general outcome evidence produced by
+FR-887/FR-888/FR-889. Do not judge or enforce this draft while the
+stale matrix references remain.
 
 ## Summary
 
-Classify every corpus prompt into the **same content taxonomy FR-885
-probes models with** ({nudity, sexual, gore} × severity rung), commit
-the classification as corpus columns, and replace the blind roster pick
-at draw time with a **deterministic table join**: prompt fingerprint ≤
-model tolerance on every axis → eligible; pick among eligible. No LLM
-call at draw time.
+Replace the blind roster pick at draw time with a **deterministic
+table join** over the FR-890 corpus fingerprint ({sexual, gore} ×
+safe/mature): prompt fingerprint ≤ model tolerance on every axis →
+eligible; pick among eligible. No LLM call at draw time.
 
 ## Value Statement
 
@@ -37,7 +38,7 @@ does not.
 ## Ideal Result
 
 Every prompt in the corpus carries a dated content fingerprint in the
-FR-885 taxonomy. The draw step is a pure function
+FR-890 taxonomy. The draw step is a pure function
 `route(prompt_fingerprint, tolerance_matrix, roster) -> model` — same
 inputs, same output, testable without any network call. A prompt no
 roster model tolerates is never drawn (excluded deterministically, with
@@ -49,28 +50,21 @@ a counted reason), never burned live.
   `prompt, source_file, local_model, dialect, seed, size, created` only.
 - Draw-time model selection is blind; mature-prompt × strict-model
   collisions are witnessed as wasted paid generations and sanitized
-  duds (FR-885 Problem section).
+  duds.
 - Upstream filtering removed the extremes (gore/porn dropped at
   extraction), but the surviving mid-spectrum is where model tolerance
   diverges — and it is unlabeled.
 
 ## Proposed Solution
 
-### 1. Corpus fingerprinting (demand side) — yamlgraph map graph
+### 1. Corpus fingerprinting (demand side) — FR-890
 
-- A yamlgraph graph with a **map node** fans the 7,392 prompts across
-  haiku-class calls: per prompt, per class ({nudity, sexual, gore}),
-  a rung on the **identical ladder FR-885 uses** (safe / suggestive /
-  mature). Closed-set structured output (Pydantic), one shot, no
-  retries.
-- Estimated spend ≈ $3 (haiku, short prompts). Batchable/resumable.
-- Output committed as new corpus columns:
-  `content: {nudity: rung, sexual: rung, gore: rung}` +
-  `fingerprint_date` + classifier model id. Extractor
-  (`scripts/extract_corpus.py`) treats them as pass-through on future
-  re-extractions; a separate enrichment script owns them.
-- Taxonomy is imported from the FR-885 artifact (single source of
-  truth), not redeclared.
+Carved out to **FR-890** (2026-08-25): a yamlgraph map graph classifies
+all prompts into `content: {sexual: safe|mature, gore: safe|mature}` +
+`genre` and commits them as additive corpus columns. This FR consumes
+those columns; the taxonomy is owned by FR-890 (single source of
+truth), not redeclared here. FR-885's {nudity, sexual, gore} × 3-rung
+ladder is superseded.
 
 ### 2. Deterministic router
 
@@ -95,9 +89,9 @@ a counted reason), never burned live.
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Enrichment graph + script exist; a witnessed run classifies
-  the full corpus; columns committed with date + classifier id.
-- [ ] AC-2: Fingerprint rungs use the FR-885 ladder verbatim; a test
+- [ ] AC-1: FR-890 enforced — corpus columns present (dependency
+  witness, not re-implemented here).
+- [ ] AC-2: Fingerprint rungs use the FR-890 taxonomy verbatim; a test
   fails if the taxonomies drift apart.
 - [ ] AC-3: `eligible_models` is pure and fully unit-tested: tolerant
   model admitted, strict model excluded, sanitized excluded,
@@ -115,15 +109,14 @@ a counted reason), never burned live.
 ## Constraints
 
 - C-1: Draw-time routing is a pure function — no network, no LLM.
-- C-2: Enrichment spend ceiling $5; stop before exceeding.
-- C-3: Corpus prompt text is never modified by enrichment — columns
-  are additive only; row count is invariant (7,392 before == after).
-- C-4: No roster changes, no model admission/retirement (FR-885
-  boundary honored).
-- C-5: Taxonomy single-sourced from the FR-885 probe artifact.
+- C-2: (moved to FR-890 with the enrichment.)
+- C-3: (moved to FR-890 with the enrichment.)
+- C-4: No roster changes, no model admission/retirement.
+- C-5: Taxonomy single-sourced from the FR-890 artifact.
 
 ## Out of Scope
 
-- Model roster changes (separate decision, informed by FR-885 matrix).
-- Re-probing models (FR-885 owns the matrix lifecycle).
+- Corpus enrichment / fingerprint production (FR-890).
+- Model roster changes (separate decision).
+- Re-probing models (FR-887/FR-888/FR-889 territory).
 - Prompt rewriting / softening to fit a model (routing only).
