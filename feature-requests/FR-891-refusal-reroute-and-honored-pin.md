@@ -262,8 +262,11 @@ untouched — the pin re-binds the model, never re-draws.
       following `draw_step` treats the terminal slot as complete and
       draws the next candidate (REQ-DD-122).
 - [ ] AC-07 If the exhaustion `skipped` transition fails to commit, the
-      run exits red and does not claim the slot is terminal; both
-      failures stay inspectable (REQ-DD-122).
+      `LedgerCommitError` propagates carrying the provider refusal as its
+      context and `generate_step` never returns normally.
+      (`record_transition` appends before it commits, so a local row is
+      not evidence of durability — the propagating error is.)
+      (REQ-DD-122).
 - [ ] AC-08 A differing operator pin on a resumed `drawn` row is parsed
       before the resume return, commits a new `drawn` transition with
       the pinned model and unchanged `date`, `slot`, `prompt`,
@@ -345,3 +348,40 @@ already draws this line.
   FR-890 fingerprint enrichment
 - Failing runs 34125302840, 34136757774, 34194720806, 34195010358,
   34195469199, 34195509979, 34196933025, 34222520565
+
+## Implementation Record (2026-09-08)
+
+**Status:** Enforced. All 11 revised ACs witnessed by
+`tests/test_refusal_reroute.py` (14 tests, all offline); full suite
+235 passed; `python3 scripts/req_coverage.py --strict` green with
+`capabilities/CAP-19-refusal-reroute.yaml`.
+
+Surfaces touched, against the frozen list:
+
+| Surface | Change |
+|---|---|
+| `tools/steps.py` | `UnsafeRebind`, `EXHAUSTED`, `_slot_row`, `_rebind`, `_may_reroute`, `_next_binding`; `draw_step` parses the pin before the resume return; `generate_step` becomes a re-route loop |
+| `tools/route.py` | untouched — `eligible_models` was already the pure helper R-3 needed |
+| `tests/test_refusal_reroute.py` | new; `tests/test_route.py` and `tests/test_steps.py` unchanged and still green |
+| `capabilities/CAP-19-refusal-reroute.yaml` | new, REQ-DD-118…123 |
+
+Deviations from the judgement, both narrowing:
+
+- **`run_source`/`slot` precondition added** (AC-12, C-2). Re-routing
+  requires `run_source == "corpus"` and a non-null slot. Without it the
+  FR-889 user path would have re-routed away from the model the operator
+  named, contradicting that FR's contract and C-7's "no FR-888/889
+  behaviour change". Narrows authorized behaviour; adds no surface.
+- **AC-07 restated.** The judgement's "does not claim the slot is
+  terminal" was folded as an assertion that no `skipped` row exists in
+  the ledger file. That is unreachable: `record_transition` appends
+  before it commits, so a failed commit always leaves the local row. The
+  real invariant — and what the test now witnesses — is that the
+  `LedgerCommitError` propagates carrying the provider refusal as its
+  `__context__`, and `generate_step` never returns. The test assertion
+  was corrected before the fix existed, not after it failed.
+
+**Live incident.** The committed `2026-09-08#0` row stays at `drawn`
+bound to `grok`; a `publish-now` run with `date=2026-09-08` now resumes
+it, re-routes past `grok`, and can publish. Scheduled runs from
+2026-09-09 draw fresh regardless.

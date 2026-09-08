@@ -1,0 +1,57 @@
+name: Refusal re-routing and honoured operator pin
+id: CAP-19
+status: active
+description: >
+  FR-891: a provider content refusal is a routing event, not a dead end.
+  generate_step abandons the refused binding mid-run for the next model
+  the FR-887 refusal evidence still permits, committing each new binding
+  before its call; exhaustion terminalizes the already-drawn slot so the
+  next run draws instead of resuming. draw_step parses the operator pin
+  before the resume return, so the manual escape lever reaches a slot a
+  refusal has already poisoned. Witnessed by tests/test_refusal_reroute.py.
+requirements:
+  - id: REQ-DD-118
+    description: >
+      A refusal from the bound model re-routes within the same
+      generate_step invocation: the content tuple comes from the corpus
+      row matched by prompt_sha, evidence is loaded after the refusal row
+      is committed, models already attempted in this invocation are
+      subtracted, and the first member of the sorted eligible set is
+      chosen with no RNG. The returned model_name is the model that
+      actually produced the image.
+  - id: REQ-DD-119
+    description: >
+      FR-887 two-error semantics precede any re-route: if the refusal
+      FailureRecord cannot be appended and committed, no retry is
+      attempted and the provider failure is raised with the ledger
+      failure attached as cause and note.
+  - id: REQ-DD-120
+    description: >
+      Each retry binding is committed as a drawn transition carrying the
+      slot's unchanged date, slot, prompt, and source_file before its
+      provider call; a failed commit aborts before the call, so no
+      provider call ever runs behind an uncommitted binding.
+  - id: REQ-DD-121
+    description: >
+      Re-routing is confined to deterministic content refusals on a
+      committed publish slot: transport, timeout, and unknown failures
+      record one row and re-raise with the slot left at drawn, and the
+      FR-889 user path (run_source="user", slot=None) never re-routes
+      and never writes to the publish ledger.
+  - id: REQ-DD-122
+    description: >
+      When no eligible unattempted model remains, generate_step commits
+      status=skipped with reason "unroutable: every roster model refused"
+      for the already-drawn slot and re-raises the last provider error;
+      a following draw_step treats the terminal slot as complete and
+      draws the next candidate. A failed skipped commit propagates
+      carrying the provider refusal as its context and generate_step
+      never returns normally.
+  - id: REQ-DD-123
+    description: >
+      An operator pin is parsed before the resume return: a differing pin
+      on a resumed drawn row commits a new drawn transition with the
+      pinned model and unchanged date, slot, prompt, and source_file; a
+      matching pin writes no transition; a differing pin on a resumed
+      non-drawn non-terminal row raises UnsafeRebind naming the status
+      and both models, never a silent discard.

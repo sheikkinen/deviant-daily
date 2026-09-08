@@ -25,7 +25,7 @@ from pydantic import ValidationError
 
 from tools import da_api
 from tools.corpus import load_corpus, row_id, unused_candidates
-from tools.failures import append_failure_record, build_failure_record
+from tools.failures import append_failure_record, build_failure_record, prompt_sha
 from tools.gate import PostDescription, evaluate_gate
 from tools.generate import generate_image
 from tools.inputs import parse_date, parse_model, parse_slot
@@ -43,6 +43,7 @@ from tools.roster import choose_model, validate_roster
 from tools.route import (
     UnroutablePrompt,
     content_tuple,
+    eligible_models,
     load_failure_rows,
     load_taxonomy,
     refusal_evidence,
@@ -58,6 +59,12 @@ FAILURES = REPO_DIR / "state" / "failures.jsonl"
 CORPUS = REPO_DIR / "prompts" / "corpus.jsonl"
 DA_REPO = "sheikkinen/deviant-daily"
 
+EXHAUSTED = "unroutable: every roster model refused"
+
+
+class UnsafeRebind(RuntimeError):
+    """An operator pin arrived past the pre-generation boundary (FR-891)."""
+
 
 def _resumed(existing: dict, date: str, slot: int) -> dict:
     return {
@@ -70,6 +77,38 @@ def _resumed(existing: dict, date: str, slot: int) -> dict:
         "slot": slot,
         "done": False,
     }
+
+
+def _slot_row(existing: dict, date: str, slot: int, **fields) -> dict:
+    """A transition for an existing slot: identity carried, never re-drawn."""
+    return {
+        "date": date,
+        "slot": slot,
+        "prompt": existing.get("prompt", ""),
+        "source_file": existing.get("source_file", ""),
+        **fields,
+    }
+
+
+def _rebind(existing: dict, pinned: str, date: str, slot: int, runner) -> dict:
+    """FR-891: an operator pin re-binds a resumed slot before generation.
+    Past `drawn` a committed transition already guards a call in flight,
+    so the pin is refused loudly rather than discarded silently."""
+    bound = existing.get("model", "")
+    if existing["status"] != "drawn":
+        raise UnsafeRebind(
+            f"pin {pinned!r} cannot rebind {date}#{slot} at status "
+            f"{existing['status']!r} (bound {bound!r}): the transition past "
+            "drawn guards an external call already in flight"
+        )
+    logger.info("draw: pin %s rebinds %s#%d from %s", pinned, date, slot, bound)
+    record_transition(
+        REPO_DIR,
+        LEDGER,
+        _slot_row(existing, date, slot, status="drawn", model=pinned),
+        runner=runner,
+    )
+    return {**existing, "model": pinned}
 
 
 def _route_candidate(candidates: list[dict], roster: dict) -> tuple[dict, str]:
@@ -105,8 +144,11 @@ def draw_step(date: str = "", model: str = "", runner=subprocess.run) -> dict:
     entries = read_ledger(LEDGER)
     slot = latest_slot(entries, date)
     existing = entry_for_slot(entries, date, slot) if slot >= 0 else None
+    pinned = parse_model(model)
 
     if existing and existing["status"] not in TERMINAL:
+        if pinned and pinned != existing.get("model"):
+            existing = _rebind(existing, pinned, date, slot, runner)
         logger.info(
             "draw: resuming %s#%d from status=%s", date, slot, existing["status"]
         )
@@ -114,7 +156,6 @@ def draw_step(date: str = "", model: str = "", runner=subprocess.run) -> dict:
 
     slot = slot + 1 if existing else 0
     candidates = unused_candidates(CORPUS, entries)
-    pinned = parse_model(model)
     if pinned:
         row, bound = random.choice(candidates), pinned  # pin bypasses routing
     else:
@@ -146,6 +187,55 @@ def draw_step(date: str = "", model: str = "", runner=subprocess.run) -> dict:
     }
 
 
+def _may_reroute(error_class: str, run_source: str, slot: int | None) -> bool:
+    """FR-891: only a deterministic content refusal on a committed publish
+    slot re-routes. Transport blips carry no evidence about content, and
+    the FR-889 user path keeps the operator as the sole authority."""
+    return error_class == "refusal" and run_source == "corpus" and slot is not None
+
+
+def _next_binding(
+    prompt: str, date: str, slot: int, existing: dict, attempted: list[str], runner
+) -> tuple[str, dict] | None:
+    """FR-891 R-3: evidence is loaded AFTER the refusal row is committed,
+    so it includes it. Selection is the sorted eligible set minus this
+    run's attempts — no RNG, so the retry sequence is testable.
+    Returns None when the roster is exhausted, having terminalized the
+    slot so the next run draws instead of resuming."""
+    corpus = load_corpus(CORPUS)
+    corpus_row = {prompt_sha(row["prompt"]): row for row in corpus}.get(
+        prompt_sha(prompt)
+    )
+    if corpus_row is None:
+        logger.info("generate: prompt not in corpus — no content tuple to route on")
+        return None
+    axes = load_taxonomy()
+    evidence = refusal_evidence(load_failure_rows(FAILURES), corpus, axes)
+    fingerprint = content_tuple(corpus_row, axes)
+    candidates = [
+        name
+        for name in eligible_models(fingerprint, evidence, validate_roster())
+        if name not in attempted
+    ]
+    if not candidates:
+        logger.info("generate: %s#%d exhausted for content %s", date, slot, fingerprint)
+        record_transition(
+            REPO_DIR,
+            LEDGER,
+            _slot_row(existing, date, slot, status="skipped", reason=EXHAUSTED),
+            runner=runner,
+        )
+        return None
+    logger.info("generate: rerouting %s#%d to %s", date, slot, candidates[0])
+    record_transition(
+        REPO_DIR,
+        LEDGER,
+        _slot_row(existing, date, slot, status="drawn", model=candidates[0]),
+        runner=runner,
+    )
+    return choose_model(name=candidates[0])
+
+
 def generate_step(
     prompt: str,
     date: str,
@@ -156,31 +246,50 @@ def generate_step(
     runner=subprocess.run,
     out_path: str | None = None,
 ) -> dict:
-    """Generate; on failure commit a FailureRecord row, then re-raise
-    (FR-887). A ledger commit failure stays secondary: the provider
-    failure is re-raised with it attached as cause + note (R-3)."""
+    """Generate; on failure commit a FailureRecord row (FR-887). A ledger
+    commit failure stays secondary: the provider failure is re-raised with
+    it attached as cause + note (R-3).
+
+    A content refusal is a routing event, not a dead end (FR-891): the
+    committed binding is abandoned for the next model the evidence still
+    permits, each new binding committed before its call. Exhaustion
+    terminalizes the slot and re-raises, so the day is red but the next
+    run is not condemned to repeat it.
+    """
+    parsed_slot = parse_slot(slot) if slot is not None else None
+    existing = {"prompt": prompt, "source_file": source_file or ""}
     model_name, config = choose_model(name=parse_model(model))
     target = out_path or f"/tmp/deviant-daily-{date}.png"
-    try:
-        image_path = generate_image(prompt, config, target)
-    except Exception as exc:
-        record = build_failure_record(
-            exc=exc,
-            date=date,
-            slot=parse_slot(slot) if slot is not None else None,
-            model=model_name,
-            slug=config["slug"],
-            prompt=prompt,
-            source_file=source_file or None,
-            run_source=run_source,
-        )
+    attempted: list[str] = []
+
+    while True:
+        attempted.append(model_name)
         try:
-            append_failure_record(REPO_DIR, FAILURES, record, runner=runner)
-        except Exception as ledger_exc:
-            exc.add_note(f"failure-ledger write also failed: {ledger_exc}")
-            raise exc from ledger_exc
-        raise
-    return {"model_name": model_name, "image_path": image_path}
+            image_path = generate_image(prompt, config, target)
+        except Exception as exc:
+            record = build_failure_record(
+                exc=exc,
+                date=date,
+                slot=parsed_slot,
+                model=model_name,
+                slug=config["slug"],
+                prompt=prompt,
+                source_file=source_file or None,
+                run_source=run_source,
+            )
+            try:
+                append_failure_record(REPO_DIR, FAILURES, record, runner=runner)
+            except Exception as ledger_exc:
+                exc.add_note(f"failure-ledger write also failed: {ledger_exc}")
+                raise exc from ledger_exc
+            if not _may_reroute(record.error_class, run_source, parsed_slot):
+                raise
+            nxt = _next_binding(prompt, date, parsed_slot, existing, attempted, runner)
+            if nxt is None:
+                raise
+            model_name, config = nxt
+            continue
+        return {"model_name": model_name, "image_path": image_path}
 
 
 def describe_step(image_path: str, prompt: str) -> dict:

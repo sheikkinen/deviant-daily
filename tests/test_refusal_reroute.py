@@ -335,7 +335,10 @@ def test_exhaustion_terminalizes_slot_and_stays_red(env, monkeypatch):
 
 @pytest.mark.req("REQ-DD-122")
 def test_exhaustion_commit_failure_does_not_claim_terminal(env, monkeypatch):
-    """AC-07: an uncommitted skip must not be reported as terminal."""
+    """AC-07: the skip is never reported as durable. record_transition
+    appends before it commits, so the local row proves nothing — the
+    witness is that the commit failure propagates and carries the
+    provider refusal as its context."""
     tmp_path = env
     slugs = _slugs()
     first = _names()[0]
@@ -343,10 +346,12 @@ def test_exhaustion_commit_failure_does_not_claim_terminal(env, monkeypatch):
     monkeypatch.setattr(steps, "generate_image", Provider(set(slugs.values()), []))
 
     runner = Runner(fail_commit_on=2 * len(slugs))
-    with pytest.raises(LedgerCommitError):
+    with pytest.raises(LedgerCommitError) as exc:
         _generate(tmp_path, first, runner)
 
-    assert all(r["status"] != "skipped" for r in _ledger(tmp_path))
+    assert "skipped" in runner.commits[-1]
+    assert isinstance(exc.value.__context__, RuntimeError)
+    assert "flagged as sensitive" in str(exc.value.__context__)
 
 
 # --- AC-08 / AC-09 -----------------------------------------------------
