@@ -35,6 +35,10 @@ logger = logging.getLogger(__name__)
 
 PROMPT_FILE = Path(__file__).parent.parent / "prompts" / "describe_post.yaml"
 
+# Pinned: haiku-4-5 (yamlgraph default) sent temperature, which anthropic
+# API 2026-10-21 rejects with a 400; haiku-5-5 never receives it.
+VISION_MODEL = "claude-haiku-5-5"
+
 # Anthropic downscales anything longer than this server-side anyway.
 MAX_EDGE = 1568
 # Provider ceiling is 10 MB of base64; leave headroom for the text parts.
@@ -175,7 +179,7 @@ def describe_image(image_path: str | Path, prompt_text: str, llm=None) -> dict:
             },
         ]
     )
-    model = llm or create_llm(provider="anthropic")
+    model = llm or create_llm(provider="anthropic", model=VISION_MODEL)
     structured = model.with_structured_output(CaptureDescription)
     captured = structured.invoke([message])
     raw = captured if isinstance(captured, dict) else captured.model_dump()
