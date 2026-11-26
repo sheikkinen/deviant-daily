@@ -388,7 +388,9 @@ def publish_step(
         access,
         image_path,
         post["title"],
-        render_artist_comments(PostDescription.model_validate(post)),
+        render_artist_comments(
+            PostDescription.model_validate(post), prompt, model_name
+        ),
         post["tags"],
         session=session,
     )

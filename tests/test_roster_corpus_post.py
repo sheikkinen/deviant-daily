@@ -364,7 +364,7 @@ def test_render_post_md_shape():
 
 @pytest.mark.req("REQ-DD-051")
 def test_render_artist_comments_style_contract():
-    from tools.post import DESCRIPTION_FOOTER, render_artist_comments
+    from tools.post import DESCRIPTION_FOOTER, PROMPT_DIVIDER, render_artist_comments
 
     post = PostDescription(
         title="Veil",
@@ -374,11 +374,54 @@ def test_render_artist_comments_style_contract():
         confidence="high",
         mature=False,
     )
-    comments = render_artist_comments(post)
+    comments = render_artist_comments(post, "a veiled queen", "z-image")
     # DA renders \n\n as an EMPTY <p> that collapses to zero height
     # (live witness 2026-08-19) — the separator line must carry a
     # non-breaking space so the blank line is visible.
-    assert comments.startswith("One.\n\u00a0\nTwo.\n\u00a0\n\u201cVow.\u201d\n\u00a0\n")
+    assert comments.startswith(
+        "One.\n\u00a0\nTwo.\n\u00a0\nBe Art. Be Unique.\n\u00a0\n\u201cVow.\u201d\n\u00a0\n"
+    )
     assert "\n\n" not in comments
-    assert comments.endswith(DESCRIPTION_FOOTER)
+    assert DESCRIPTION_FOOTER in comments
     assert "deviantart.com/sheikkinen/gallery" in comments
+    assert comments.endswith(
+        DESCRIPTION_FOOTER
+        + "\n\u00a0\n"
+        + PROMPT_DIVIDER
+        + "\n\u00a0\na veiled queen\n\u00a0\nModel: z-image"
+    )
+
+
+@pytest.mark.req("REQ-DD-051")
+def test_render_artist_comments_epigram_split_from_paragraph():
+    from tools.post import render_artist_comments
+
+    post = PostDescription(
+        title="Veil",
+        paragraphs=["One.", "Two ends here. Be Art. Be Unique."],
+        quote=None,
+        tags=["gothic"],
+        confidence="high",
+        mature=False,
+    )
+    comments = render_artist_comments(post, "p", "z-image")
+    assert comments.startswith(
+        "One.\n\u00a0\nTwo ends here.\n\u00a0\nBe Art. Be Unique.\n\u00a0\n"
+    )
+    assert comments.count("Be Art. Be Unique.") == 1
+
+
+@pytest.mark.req("REQ-DD-051")
+def test_render_artist_comments_prompt_blank_lines_survive_da():
+    from tools.post import render_artist_comments
+
+    post = PostDescription(
+        title="Veil",
+        paragraphs=["One."],
+        tags=["gothic"],
+        confidence="high",
+        mature=False,
+    )
+    comments = render_artist_comments(post, "line one\n\nline two", "z-image")
+    assert "\n\n" not in comments
+    assert comments.endswith("line one\n\u00a0\nline two\n\u00a0\nModel: z-image")

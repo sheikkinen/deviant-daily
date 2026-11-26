@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from tools.gate import PostDescription
 
 # DA splits \n\n into <p> elements but the empty <p> collapses to zero
@@ -24,12 +26,26 @@ DESCRIPTION_FOOTER = (
 )
 
 
-def render_artist_comments(post: PostDescription) -> str:
-    """DA description: paragraphs, quote, footer (STYLE-CONTRACT §3)."""
+EPIGRAM = "Be Art. Be Unique."
+PROMPT_DIVIDER = "\u2500" * 24
+
+
+def render_artist_comments(post: PostDescription, prompt: str, model_name: str) -> str:
+    """DA description: paragraphs, epigram, quote, footer, divider, prompt,
+    model (STYLE-CONTRACT §3)."""
     parts = list(post.paragraphs)
+    # The model ends the last paragraph with the epigram; it belongs on its own line.
+    parts[-1] = parts[-1].rstrip().removesuffix(EPIGRAM).rstrip()
+    parts = [p for p in parts if p]
+    parts.append(EPIGRAM)
     if post.quote:
         parts.append(f"\u201c{post.quote}\u201d")
-    parts.append(DESCRIPTION_FOOTER)
+    parts += [
+        DESCRIPTION_FOOTER,
+        PROMPT_DIVIDER,
+        re.sub(r"\n\s*\n", PARA_SEP, prompt.strip()),
+        f"Model: {model_name}",
+    ]
     return PARA_SEP.join(parts)
 
 
